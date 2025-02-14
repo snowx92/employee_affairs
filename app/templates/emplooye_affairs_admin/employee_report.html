@@ -1,0 +1,197 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تقرير الموظف{% endblock %}
+
+{% block admin_content %}
+
+<div class="jumbotron">
+    <div class="container">
+  
+        <h1 class="display-4">
+             <span class="username">تقرير موظف</span>
+        </h1>
+        <p class="lead">
+            إنشاء تقرير للموظفين بناءً على معايير مختارة
+        </p>
+        <hr class="my-4 ">
+
+    </div>
+  </div>
+<div class="container mt-5">
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('main.employee_report') }}">
+        {% if user_type == 'manager' %}  
+        <div class="form-group">
+            <label for="office_name">المكتب</label>
+            <select class="form-control" id="office_name" name="office_name" required>
+                {% for office in all_offices %}
+                {% if user_type == 'manager' %}
+                    {% if office == user_office %}
+                        <option value="{{ office }}" selected="selected">{{ office }}</option>
+                    {% endif %}
+                {% else %}
+                    <option value="{{ office }}" {% if office == user_office %}selected="selected"{% endif %}>{{ office }}</option>
+                {% endif %}
+            {% endfor %}
+            
+            </select>
+        </div>
+    
+        <div class="form-group">
+            <label for="employee_name">اسم الموظف</label>
+            <select class="form-control" id="employee_name" name="employee_name" required>
+                {% for employee in employees %}
+                    <option value="{{ employee.id }}">{{ employee.name }} ({{ employee.period }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+    {% if user_type == 'admin' %}  
+    <div class="form-group">
+        <label for="office_name">المكتب</label>
+        <select class="form-control" id="office_name" name="office_name" required>
+            {% for office in all_offices %}
+
+            <option value="{{ office }}">
+                {{ office }}
+            </option>
+
+        {% endfor %}
+        
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="employee_name">اسم الموظف</label>
+        <select class="form-control" id="employee_name" name="employee_name" required>
+        </select>
+    </div>
+{% endif %}
+    {% if user_type == 'employee' %}  
+    <div class="form-group">
+        <label for="office_name">المكتب</label>
+        <select class="form-control" id="office_name" name="office_name" required>
+                <option value="{{ current_user.office }}" selected="selected">{{ current_user.office }}</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="name">اسم الموظف</label>
+        <select class="form-control" id="employee_namsse" name="employee_name" required>
+        <option value="{{ current_user.id}}" selected="selected">{{ current_user.name}} </option>
+        </select>
+    </div>
+{% endif %}
+        <div class="form-group">
+            <label for="date_from">من</label>
+            <input type="date" class="form-control" id="date_from" name="date_from" required>
+        </div>
+    
+        <div class="form-group">
+            <label for="date_to">الي</label>
+            <input type="date" class="form-control" id="date_to" name="date_to" required>
+        </div>
+    
+        <div class="form-group">
+            <label for="report_type">نوع التقرير</label>
+            <select class="form-control" id="report_type" name="report_type" required>
+                <option value="check_in_attendance">تمام الحضور</option>
+                <option value="check_in_delays">تأخيرات</option>
+                <option value="check_out_attendance">تمام الانصراف</option>
+                <option value="no_check_out">عدم تسجيل الانصراف</option>
+                <option value="check_all">تمام حضور وانصراف</option>
+                <option value="momrya">المأموريات</option>
+                <option value="absent">غيابات</option>
+                <option value="ezn">اذونات</option>
+                <option value="agaza">اجازات</option>
+                <option value="clinic">عيادة</option>
+                <option value="altmas">التماس</option>
+                <option value="rased">رصيد الموظف</option>
+                <option value="rest">الراحات</option>
+            </select>
+        </div>
+    
+        <button type="submit" class="btn btn-primary">انشاء التقرير</button>
+    </form>
+</div>
+<script>
+    // Get today's date
+    var today = new Date();
+
+    // Format the date as YYYY-MM-DD
+    var day = ("0" + today.getDate()).slice(-2);
+    var month = ("0" + (today.getMonth() + 1)).slice(-2);
+    var todayFormatted = today.getFullYear() + '-' + month + '-' + day;
+
+    // Set the value of the date input field to today's date
+    document.getElementById('date_to').value = todayFormatted;
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var officeSelect = document.getElementById('office_name');
+        var employeeSelect = document.getElementById('employee_name');
+    
+        function updateEmployees(office) {
+            console.log('Updating employees for office:', office);
+            fetch('/get_employees/' + encodeURIComponent(office))
+                .then(response => response.json())
+                .then(data => {
+                    employeeSelect.innerHTML = '';  // Clear existing options
+                    
+                    data.forEach(employee => {
+                        var option = document.createElement('option');
+                        option.value = employee.id;
+                        option.text = employee.name + ' (' + employee.period + ')';
+                        employeeSelect.appendChild(option);
+                    });
+                    console.log('Employee list updated');
+                })
+                .catch(error => console.error('Error updating employees:', error));
+        }
+    
+        function getVisibleOffice() {
+            // Get the text content of the selected option
+            return officeSelect.options[officeSelect.selectedIndex].text;
+        }
+    
+        function handleOfficeChange() {
+            var visibleOffice = getVisibleOffice();
+            console.log('Visible selected office:', visibleOffice);
+            console.log('Office select value:', officeSelect.value);
+            updateEmployees(visibleOffice);
+        }
+    
+        officeSelect.addEventListener('change', handleOfficeChange);
+    
+        function initializeForm() {
+            console.log('Initializing form');
+            console.log('Initial office select value:', officeSelect.value);
+            console.log('Initial visible office:', getVisibleOffice());
+            handleOfficeChange();
+        }
+    
+        // Initial population of employees
+        initializeForm();
+    
+        // Handle browser back button / form restore
+        window.addEventListener('pageshow', function(event) {
+            console.log('pageshow event fired, persisted:', event.persisted);
+            setTimeout(initializeForm, 0);  // Delay execution to ensure DOM is fully restored
+        });
+    });
+    </script>
+    
+{% endblock %}

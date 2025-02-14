@@ -1,0 +1,134 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}الاعدادات{% endblock %}
+
+{% block admin_content %}
+<style>
+.profile-photo-container {
+    position: relative;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.profile-photo {
+    vertical-align: middle;
+    width: 200px;
+    height: 200px;
+     border-radius: 50%;
+    object-fit: contain;
+    border: 2px solid #ddd;
+    transition: transform 0.3s ease;
+}
+
+.profile-photo-container:hover .profile-photo {
+    transform: scale(1.1);
+}
+
+.profile-photo-container .edit-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    padding: 10px;
+    border-radius: 50%;
+    font-size: 24px;
+    display: none;
+}
+
+.profile-photo-container:hover .edit-icon {
+    display: block;
+    cursor: pointer;
+}
+
+.profile-photo-container input[type="file"] {
+    display: none;
+}
+.password-field-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-field-container input {
+    padding-right: 40px; /* Space for the icon */
+}
+
+.show-password-icon {
+    position: absolute;
+    right: 10px;
+    top: 80%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #007bff;
+    font-size: 18px;
+}
+</style>
+
+<div class="container"> 
+    <h1 class="text-center mb-4">الاعدادات</h1>
+    <p class="text-center mb-4">يمكنك التحكم في حسابك الشخصي من هنا</p>
+
+    
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    <form method="POST" enctype="multipart/form-data" action="{{ url_for('main.admin_settings') }}">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            <div class="profile-photo-container">
+                {% if current_user.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ current_user.photo) }}" alt="Profile Photo" class="profile-photo">
+                {% else %}
+                    <img src="{{ url_for('static', filename='uploads/profile.png') }}" alt="Default Profile Photo" class="profile-photo">
+                {% endif %}
+                <label for="photo" class="edit-icon">
+                    <i class="fa fa-pencil"></i>
+                </label>
+                <input type="file" name="photo" id="photo" class="form-control-file">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="name">الاسم</label>
+            {{ form.name(class="form-control") }}
+        </div>
+
+        <div class="form-group position-relative">
+            <label for="password">كلمة المرور الجديدة</label>
+
+            {{ form.password(class="form-control", id="password") }}
+            <i class="fa fa-eye show-password-icon" id="togglePassword" onclick="togglePasswordVisibility()"></i>
+        </div>
+
+
+        <button type="submit" class="btn btn-primary">حفظ التغيرات</button>
+    </form>
+</div>
+<script>
+    function togglePasswordVisibility() {
+        var passwordField = document.getElementById('password');
+        var toggleIcon = document.getElementById('togglePassword');
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+    </script>
+{% endblock %}

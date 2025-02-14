@@ -1,0 +1,146 @@
+<form method="POST" action="{{ url_for('main.add_request') }}">
+    <input type="hidden" name="report_type" id="report_type_hidden" value="">
+    {{ form.hidden_tag() }}
+    {% if user_type != 'employee' %}  
+    <div class="form-group">
+        {{ form.office_name.label(class="form-label") }}
+        {{ form.office_name(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.employee_name.label(class="form-label") }}
+        <select id="employee_name" name="employee_name" class="form-control">
+            <!-- Options will be populated dynamically -->
+        </select>
+    </div>
+    {% endif %}
+    {% if user_type == 'employee' %}  
+    <div class="form-group">
+        <label for="office_name">المكتب</label>
+        <select class="form-control" id="office_name" name="office_name" required>
+                <option selected="selected" value="{{ current_user.office }}">{{ current_user.office }}</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="name">اسم الموظف</label>
+        <select class="form-control" id="employee_namsse" name="employee_name" required>
+
+        <option value="{{ current_user.id}}" selected="selected">{{ current_user.name}} </option>
+        </select>
+    </div>
+{% endif %}
+    {% if form.from_time and form.to_time %}
+    <div class="form-group">
+        {{ form.from_time.label(class="form-label") }}
+        {{ form.from_time(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.to_time.label(class="form-label") }}
+        {{ form.to_time(class="form-control") }}
+    </div>
+    {% endif %}
+
+    {% if form.clinic_type %}
+    <div class="form-group">
+        {{ form.clinic_type.label(class="form-label") }}
+        {{ form.clinic_type(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.date.label(class="form-label") }}
+        {{ form.date(class="form-control") }}
+    </div>
+    {% endif %}
+
+    {% if form.petition %}
+    <div class="form-group">
+        {{ form.petition.label(class="form-label") }}
+        {{ form.petition(class="form-control") }}
+    </div>
+    {% endif %}
+
+    {% if form.reason %}
+    <div class="form-group">
+        {{ form.reason.label(class="form-label") }}
+        {{ form.reason(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.date.label(class="form-label") }}
+        {{ form.date(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.to_date.label(class="form-label") }}
+        {{ form.to_date(class="form-control") }}
+    </div>
+    {% endif %}
+
+    {% if form.from_date and form.to_date %}
+    <div class="form-group">
+        {{ form.from_date.label(class="form-label") }}
+        {{ form.from_date(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.to_date.label(class="form-label") }}
+        {{ form.to_date(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.agaza_type.label(class="form-label") }}
+        {{ form.agaza_type(class="form-control") }}
+    </div>
+    {% if current_user.user_type == 'admin' %}
+    <div class="form-group" id="impact_type_div" style="display: none;">
+        {{ form.impact_type.label(class="form-label") }}
+        {{ form.impact_type(class="form-control") }}
+    </div>
+    {% endif %}
+    <div class="form-group">
+        {{ form.alternative.label(class="form-label") }}
+        <select id="alternative" name="alternative" class="form-control">
+            <!-- Options will be populated dynamically -->
+        </select>
+    </div>
+    <div class="form-group">
+        {{ form.notes_agaza.label(class="form-label") }}
+        {{ form.notes_agaza(class="form-control") }}
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary">إرسال</button>
+</form>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the select elements
+        const agazaTypeSelect = document.querySelector('#agaza_type');
+        const impactTypeDiv = document.querySelector('#impact_type_div');
+    
+        // Debug log to verify elements are found
+        console.log('Agaza Type Select:', agazaTypeSelect);
+        console.log('Impact Type Div:', impactTypeDiv);
+    
+        function toggleImpactType() {
+            // Get the selected value
+            const selectedValue = agazaTypeSelect.value;
+            console.log('Selected value:', selectedValue); // Debug log
+    
+            // Check if the selected value matches either condition
+            if (selectedValue === 'أعتيادية' || selectedValue === 'عارضة') {
+                console.log('Showing impact type'); // Debug log
+                impactTypeDiv.style.display = 'block';
+            } else {
+                console.log('Hiding impact type'); // Debug log
+                impactTypeDiv.style.display = 'none';
+            }
+        }
+    
+        // Add change event listener
+        if (agazaTypeSelect && impactTypeDiv) {
+            agazaTypeSelect.addEventListener('change', function(event) {
+                console.log('Change event triggered'); // Debug log
+                toggleImpactType();
+            });
+    
+            // Run once on page load to handle initial state
+            toggleImpactType();
+        }
+    });
+    </script>

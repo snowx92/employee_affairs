@@ -1,0 +1,252 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}اضافة اذن توقيت عمل {% endblock %}
+
+{% block admin_content %}
+
+<div class="jumbotron">
+    <div class="container">
+  
+        <h1 class="display-4">
+             <span class="username">اضافة اذن توقيت عمل </span>
+        </h1>
+
+        <hr class="my-4 ">
+
+    </div>
+  </div>
+<div class="container mt-5">
+
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flashes">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('main.add_job_schedule_override') }}">
+    {{ form.hidden_tag() }}
+
+    <div class="form-group">
+        {{ form.office_name.label(class="form-label") }}
+        {{ form.office_name(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.employee_name.label(class="form-label") }}
+        <select id="employee_name" name="employee_name" class="form-control" onchange="populateTimeFields(this.value)">
+            <!-- Options will be populated dynamically -->
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="dates">قم بتحديد التواريخ</label>
+        <input id="dates" name="dates" class="form-control" type="text" readonly>
+    </div>
+
+    <!-- Job Start Time - Hours and Minutes -->
+    <div class="form-group" style="display: flex;">
+        <div style="width: 50%;">
+        <label for="job_start_hour">ساعة الحضور (HH)</label>
+        <select id="job_start_hour" name="job_start_hour" class="form-control">
+            {% for i in range(1, 25) %}
+            <option value="{{ "%02d"|format(i) }}">{{ "%02d"|format(i) }}</option>
+            {% endfor %}
+        </select>
+    </div>
+        <div style="width: 50%;">
+        <label for="job_start_minute">دقائق الحضور (MM)</label>
+        <select id="job_start_minute" name="job_start_minute" class="form-control">
+            {% for i in range(0, 60) %}
+            <option value="{{ "%02d"|format(i) }}">{{ "%02d"|format(i) }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    </div>
+
+    <!-- Job End Time - Hours and Minutes -->
+    <div class="form-group" style="display: flex;">
+        <div style="width: 50%;">
+        <label for="job_end_hour">ساعة الانصراف (HH)</label>
+        <select id="job_end_hour" name="job_end_hour" class="form-control">
+            {% for i in range(1, 25) %}
+            <option value="{{ "%02d"|format(i) }}">{{ "%02d"|format(i) }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div style="width: 50%;">
+        <label for="job_end_minute">دقائق الانصراف (MM)</label>
+        <select id="job_end_minute" name="job_end_minute" class="form-control">
+            {% for i in range(0, 60) %}
+            <option value="{{ "%02d"|format(i) }}">{{ "%02d"|format(i) }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    </div>
+
+    <div class="form-group">
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
+</form>
+
+
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flatpickr.min.css') }}">
+
+<!-- Include Flatpickr JS -->
+<script src="{{ url_for('static', filename='js/flatpickr.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var employees = JSON.parse('{{ employees|tojson|safe }}');
+        console.log("Employees:", employees);  // Debug print
+
+        // Event listener for office change
+        document.getElementById('office_name').addEventListener('change', function () {
+            console.log(this.value);
+            var office = this.value;
+            fetch('/get_employees/' + office)
+                .then(response => response.json())
+                .then(data => {
+                    var employeeDropdown = document.getElementById('employee_name');
+                    employeeDropdown.innerHTML = ''; // Clear current options
+                    data.forEach(employee => {
+                        var option = document.createElement('option');
+                        option.value = employee.id; // Set value to employee ID
+                        option.text = employee.name + ' (' + employee.period + ')'; // Display name and period
+                        employeeDropdown.appendChild(option);
+                    });
+
+                    // Populate the time fields if there's only one option
+                    if (data.length === 1) {
+                        employeeDropdown.value = data[0].id;
+                        populateTimeFields(data[0].id);
+                    } else {
+                        // Clear time fields if no employees
+                        populateTimeFields('');
+                    }
+                })
+                .catch(error => console.error('Error fetching employees:', error));
+        });
+
+        var employeeDropdown = document.getElementById('employee_name');
+
+        // Function to populate time fields based on employee ID
+        function populateTimeFields(employeeId) {
+            console.log(employeeId);
+            console.log("Fetching employee details...");
+        
+            fetch('/get_employee_schedule/' + employeeId)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        // Clear the selects if there's an error
+                        document.getElementById('job_start_hour').value = '';
+                        document.getElementById('job_start_minute').value = '';
+                        document.getElementById('job_end_hour').value = '';
+                        document.getElementById('job_end_minute').value = '';
+                    } else {
+                        // Update the select fields with the fetched data
+                        const startTime = data.job_start_time.split(':');
+                        const endTime = data.job_end_time.split(':');
+        
+                        document.getElementById('job_start_hour').value = startTime[0];
+                        document.getElementById('job_start_minute').value = startTime[1];
+                        document.getElementById('job_end_hour').value = endTime[0];
+                        document.getElementById('job_end_minute').value = endTime[1];
+                    }
+                })
+                .catch(error => console.error('Error fetching employee schedule:', error));
+        }
+        
+
+
+        // Event listener for employee dropdown change
+        employeeDropdown.addEventListener('change', function () {
+            console.log(this.value);
+            populateTimeFields(this.value);
+        });
+
+        // Populate the time fields on page load if the dropdown has only one option
+        if (employeeDropdown.options.length === 1) {
+            populateTimeFields(employeeDropdown.value);
+        }
+
+        // Initialize Flatpickr for multiple date selection
+        flatpickr("#dates", {
+            mode: "multiple",
+            dateFormat: "Y-m-d",
+            onChange: function (selectedDates) {
+                // Optionally handle changes
+                console.log(selectedDates.map(date => date.toISOString().split('T')[0])); // Outputs dates in YYYY-MM-DD format
+            }
+        });
+    });
+</script>
+
+
+
+<style>
+
+    /* Basic styling for flash messages */
+.flashes {
+    margin: 1em 0;
+}
+
+.flash {
+    padding: 1em;
+    margin-bottom: 1em;
+    border-radius: 5px;
+}
+
+.flash.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.flash.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+    .alert-container {
+        animation: fadeIn 1s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1f1f1;
+        transition: background-color 0.3s;
+    }
+
+    .btn-success {
+        transition: transform 0.2s;
+    }
+
+    .btn-success:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}

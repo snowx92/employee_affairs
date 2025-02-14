@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+    <head>
+        <title>Report</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- Bootstrap CSS -->
+
+        <style>
+          .underline{
+            text-decoration: underline;
+            text-decoration-color: #000; /* Adjust color */
+            text-decoration-thickness: 2px; /* Adjust thickness */
+        }
+          /* Define the custom font */
+      @font-face {
+          font-family: 'Cairo-Regular';
+          src: url('Cairo-Regular.ttf') format('truetype');
+          font-weight: bold;
+          font-style: normal;
+      }
+      /* Define the custom font */
+      @font-face {
+          font-family: 'Cairo-Bold';
+          src: url('Cairo-Bold.ttf') format('truetype');
+          font-weight: bold;
+          font-style: normal;
+      }
+      
+          @page {
+            size: A4 portrait;
+            margin: 10mm 10mm 10mm 15mm; /* Increased left margin */
+          }
+      
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo-Bold', sans-serif !important;
+          }
+      
+          .container {
+            width: 100%;
+            max-width: 185mm; /* Reduced slightly to fit better */
+            padding-left: 20mm; /* Ensures content stays within page bounds */
+            margin: auto;
+            
+          }
+
+      
+          h1, h2, h3 {
+            font-family: 'Times New Roman', Times, serif;
+            text-align: right;
+            margin-right: 15px;
+            font-size: 11px; /* Adjusted for better fit */
+           margin: 10px;
+          }
+      
+          .hr-style {
+            height: 2px;
+            border-width: 0;
+            color: gray;
+            background-color: black;
+
+          }
+      hr{
+        margin: 0 !important;
+      }
+           .row-content {
+            margin-bottom: 0px;
+          }
+      
+          .footer {
+
+            border-top: 1px solid black;
+            padding-top: 10px;
+            text-align: right;
+          }
+      
+          .footer h3, .footer p {
+            margin: 0;
+          }
+      
+          @media print {
+            .no-print {
+              display: none;
+            }
+          }
+      
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+          }
+      
+          th, td {
+            text-align: right;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12px;
+            padding: 5px;
+            border: 1px solid #ddd;
+          }
+      
+          .signature {
+            display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 16px;
+    margin-left: 5%;
+    margin-bottom: 25px;
+
+    }
+      
+          .signature-title {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+          }
+          .signature-placeholder {
+    display: inline-block;
+    width: 175px;
+    height: 50px;
+}
+          .sig_img{
+            max-width: 100px;
+            height: auto;
+          }
+      
+          .signature-container {
+            display: flex;
+            justify-content: space-between;
+          }
+      
+          .signature-container .signature-section {
+            flex: 1;
+            text-align: center;
+          }
+          .font_smal h3{
+              font-size: 8px !important;
+      
+          font-weight: bold !important;
+          font-family: 'Cairo-Bold', sans-serif !important;
+          }
+          .table thead th {
+            text-align: center;
+    vertical-align: bottom;
+    border-bottom: 5px solid #000 !important;
+}
+.colll{
+  display: flex;
+
+}
+.table-bordered td, .table-bordered th {
+    border: 2px solid #000 !important;
+    text-align: center;
+}
+table  th{ 
+    border: 2px solid #000 !important;
+    vertical-align: bottom;
+
+}
+table  td{ 
+    border: 2px solid #000 !important;
+    vertical-align: bottom;
+
+}
+.title-section {
+      background-color: rgba(6, 114, 114, 0.221);
+      text-align: center;
+
+
+    }
+    
+    .title-section h2 {
+      font-size: 14px;
+      text-decoration: underline;
+      margin: 0;
+    }
+    .alert {
+      position: relative;
+      padding: .75rem 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid transparent;
+      border-radius: .25rem;
+  }
+  .alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+.alert-info {
+  color: #0c5460;
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+        </style>
+
+      </head>
+<!--<body style="border-color: black; border-width: .25em; border-style: double; ">
+-->
+<body>
+
+    <div class="container">
+      <!-- Existing content -->
+        <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <div class="font_smal">
+      <div class="row row-header">
+        <div class="col">
+          <h3>قســـــم شئــــــون عاملين </h3>
+        </div>
+      </div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h3>رقـــم القيـــد : ٢٠٢٣/١١/٩٠١</h3>
+        </div>
+      </div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h3><u>التـاريــــــخ : {{data.today_date}}</u></h3>
+        </div>
+      </div>
+      <div class="row row-header">
+        <div class="col">
+          <h3><u>تاريخ  تحرير الطلب : {{data.submit_date}}</u></h3>
+        </div>
+      </div>
+    </div>
+
+
+    
+    
+      <div class="row row-header" style="
+      flex-direction: column;
+      align-items: center; 
+">
+        <div class="col-md-8" style="
+        text-align: center;">
+          <h3 style="
+          text-align: center;
+       font-family: 'Cairo-Bold', sans-serif !important;">معهـد اللغـات للقــوات المسلحــة</h3>
+        </div>
+        <div class="col-md-4" style="        text-align: center;     display: flex;
+        justify-content: center;">
+          <img class="header-img" src="{{ url_for('static', filename='images/logo.png') }}" alt="My Image" style="
+          height: 80px;
+          width: 80px;">
+        </div>
+      </div>
+    
+
+      <div class="row row-header">
+        <div class="col">
+          <h2 style="text-align: center;" class="title-section"><u> ( طلب أجـــازة {{data.agaza_type}} )</u></h2>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col colll">
+          <h3 style="margin-left: 40%;">الأســــــــم : {{data.employee_name}} </h3> 
+          <h3 style="
+    margin-right: 15px;">   الوظيفة: {{data.job_name_modli}}</h3>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col colll">
+          <h3 style="margin-left: 40%;">جهة العمل : {{data.office_name}}  </h3>
+          <h3 style="
+    margin-right: 75px;">مدة الأجازة : {{data.agaza_duration}} أيام</h3>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col colll">
+          <h3 style="margin-left: 40%;">المدة مـــن : {{data.from_date}} </h3>
+          <h3>  إلــى {{data.to_date}}</h3>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col colll">
+          <h3 style="margin-left: 34%;">العنـــــوان : كما هو مدون بقسم شئون عاملين مدنيين              </h3>  
+          <h3> توقيـــع طالب الأجازة ( {{data.employee_name}} )</h3>
+
+        </div>
+      </div>
+            <div class="row row-content">
+        <div class="col colll">
+          <h3>البديـــــل ( {{data.alternative}} )</h3>
+        </div>
+      </div>
+    
+      {% if data.agaza_type in ['أعتيادية' ,'اجازة بدل انصراف']:%}
+      <!-- Display the table for اعتياديه (Regular Leave) -->
+
+      <table class="table table-bordered row-content">
+          <thead> 
+              <tr>
+                  <th style="background-color: gray;">الأجازة المستحقة عن السنة الحالية</th>
+                  <th style="background-color: gray;">الأجازة السابق منحها فى السنة الحالية</th>
+                  <th style="background-color: gray;">الرصيد المتبقى من السنة الحالية</th>
+                  <th style="background-color: gray;">رصيد السنوات السابقة</th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr>
+                  <td>{{ data.most7ak }}</td>
+                  <td>{{ data.year_agazas }}</td>
+                  <td>{{ data.sanwya_points }}</td>
+                  <td>{{ data.tar7eel_points }}</td>
+              </tr>
+          </tbody>
+      </table>
+  {% elif data.agaza_type in ['عارضة' ,'عارضة طارئة']: %}
+      <!-- Display the table for عارضه (Emergency Leave) -->     
+      <h1></h1>
+      <table class="table table-bordered row-content">
+          <thead>
+              <tr>
+                  <th style="background-color: gray;">الأجازة المستحقة عن السنة الحالية</th>
+                  <th style="background-color: gray;">الأجازة السابق منحها فى السنة الحالية</th>
+                  <th style="background-color: gray;">الرصيد المتبقى من السنة الحالية</th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr>
+                  <td>{{ data.most7ak }}</td>
+                  <td>{{ data.year_agazas }}</td>
+                  <td>{{ data.arda_points }}</td>
+              </tr>
+          </tbody>
+      </table>
+  {% else %}
+  {% endif %}
+    
+      <div class="hr-style"></div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h2><u>( إقرار القيام )</u></h2>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col">
+          <h3>أقر بأننى أديت أعمال المصلحة حتى يوم : {{data.from_date2}} وهو أخر أيام العمل الرسمية السابقة لإبتداء الأجازة 
+            <br>
+            {{data.agaza_type}} المرخص لى بها الموضحة بعاليه</h3>
+        </div>
+      </div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h2 style="text-align: center;">إعتماد الرئيس المباشر</h2>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col colll">
+          <h3 style="margin-left: 40%;">توقيع الموظف ({{data.employee_name}})</h3>
+          <h3> التوقيـــع ( {{data.employee_name}} )</h3>
+        </div>
+      </div>
+    
+      <div class="hr-style"></div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h2><u>( إقرار العودة )</u></h2>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col">
+          <h3>أقر بأننى أستانفت أعمال المصلحة من يوم : {{data.to_date2}} وهو اليوم الأول من أيام العمل بعد إنتهاء الأجازة 
+            <br>
+            {{data.agaza_type}} المرخص لى بها الموضحة بعاليه</h3>
+        </div>
+      </div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h2 style="text-align: center;">إعتماد الرئيس المباشر</h2>
+        </div>
+      </div>
+    
+      <div class="row row-content">
+        <div class="col colll">
+          <h3 style="margin-left: 40%;">توقيع الموظف ({{data.employee_name}})</h3>
+          <h3> التوقيـــع ( {{data.employee_name}} )</h3>
+        </div>
+      </div>
+    
+      <div class="hr-style"></div>
+    
+      <!-- New section added -->
+
+      <table>
+        <tbody>
+            <tr>
+                <th>رأى السيد رئيس فرع الفرع</th>
+                {% if sig %}
+                    <td style="width: 50%;">لا مانع والامر مفوض لسيادتكم</td>
+                {% else %}
+                <td style="width: 50%;"></td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>رأى السيــد رئـيـــس شئون عاملين مدنين</th>
+                {% if sig %}
+                    <td style="width: 50%;">لا مانع والامر مفوض لسيادتكم ({{data.notes}})</td>
+                {% else %}
+                <td style="width: 50%;"></td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>رأى السيد رئيس فرع السكرتارية والإدارة المحلية</th>
+                {% if sig %}
+                    <td style="width: 50%;">لا مانع والامر مفوض لسيادتكم</td>
+                {% else %}
+                <td style="width: 50%;"></td>
+                {% endif %}
+            </tr>
+        </tbody>
+    </table>
+  
+  
+      <div class="signature-section">
+        <div class="signature">
+          <h3 class="underline">رأى السيد نائب مدير معهد اللغات للقوات المسلحة</h3>
+  
+          <div class="signature-placeholder">
+            <div style="display: flex; justify-content: space-between;">(  
+              {% if sig %}
+              <img src="{{ url_for('static', filename='images/na2b.png') }}" alt="Signature 2" class="img-fluid sig_img">
+              {% else %}
+              <p ></p>
+          {% endif %}
+            )
+          </div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between;" >
+          {% if sig %}
+          <h3>لا مانع والامر مفوض لسيادتكم</h3>
+          {% else %}
+          <h3></h3>
+      {% endif %}
+        <div class="signature" style="flex-direction: column-reverse;">
+          <h3 style="margin: 0 !important;">نائــب مديــر معهــد اللغــات للقــوات المسلحــة</h3>
+          <h3 style="margin: 0 !important;">عميـــــد / محمــــد ابراهـــــيم محمــــد ابراهـــــيم</h3>
+  
+        </div>
+        </div>
+      </div>
+      <hr>
+      <div class="signature-section">
+        <div class="signature">
+          <h3 class="underline">قرار السيـد مديـر معهـد اللغـات للقـوات المسلحـة</h3>
+  
+          <div class="signature-placeholder">
+            <div style="display: flex; justify-content: space-between;">(  
+              {% if sig %}
+              <img src="{{ url_for('static', filename='images/na2p2.png') }}" alt="Signature 2" class="img-fluid sig_img">
+              {% else %}
+              <p ></p>
+          {% endif %}
+            )
+          </div>
+  
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between;" >
+          {% if sig %}
+          <h3>تصدق</h3>
+          {% else %}
+          <h3></h3>
+      {% endif %}
+        <div class="signature"  style="flex-direction: column-reverse; " >
+      
+          <h3  style="margin: 0 !important;">مـديـــر معهــد اللغــات للقــوات المسلحــة</h3>
+          <h3 style="margin: 0 !important;">عميـــــد / تـيـسـيــر مــحــمـــــــد الــعـــطـــــار</h3>
+        </div>
+  
+      </div>
+    </div>
+  
+    
+    
+    </div>
+    
+    
+    </body>
+</html>

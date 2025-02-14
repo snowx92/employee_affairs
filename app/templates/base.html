@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/x-icon">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+        <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
+    <style>
+   /* Navbar styling */
+/* Navbar transition and brand image hover effect */
+.navbar {
+    font-weight: 400;
+    transition: background 0.25s ease;
+    -webkit-transition: background 0.25s ease;
+    -moz-transition: background 0.25s ease;
+    -ms-transition: background 0.25s ease;
+    -webkit-box-shadow: 0px 5px 21px -5px #CDD1E1;
+    -moz-box-shadow: 0px 5px 21px -5px #CDD1E1;
+    box-shadow: 0px 5px 21px -5px #CDD1E1;
+    background-color: #ffffff; /* White background for navbar */
+    position: fixed;
+    width: -webkit-fill-available;
+    z-index: 5;
+}
+
+/* Navbar brand image transition */
+.navbar-brand img {
+    transition: transform 0.3s ease;
+}
+
+.navbar-brand img:hover {
+    transform: scale(1.1);
+}
+
+/* Navbar link color and hover effect */
+.navbar-dark .navbar-nav .nav-link {
+    color: #7978e9; /* Primary color for links */
+    transition: color 0.3s;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: #4b49ac; /* Hover color */
+}
+
+/* Dropdown menu styling */
+.dropdown-menu {
+    min-width: 150px;
+}
+
+.dropdown-item img {
+    width: 20px;
+    height: 14px;
+    margin-right: 10px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background-color: #7da0fa; /* Supporting color for hover */
+}
+
+/* Clock styling */
+#clock {
+    color: #ffffff; /* White color for the clock text */
+    font-size: 1rem;
+    background-color: #7da0fa; /* Supporting color for the clock background */
+    margin-top: 10px;
+    padding-top: 10px; /* Add padding for better appearance */
+    padding-bottom: 10px;
+    border-radius: 5px; /* Rounded corners for a softer look */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for better visibility */
+}
+
+/* Language dropdown styling */
+.language-dropdown .dropdown-toggle::after {
+    display: none;
+}
+
+.language-dropdown {
+    position: relative;
+}
+
+.language-dropdown img {
+    width: 24px;
+    height: 16px;
+}
+/* Navbar link styling */
+ .navbar-nav .nav-link {
+    color: #7978e9; /* Primary color for links */
+    font-weight: 500; /* Font weight for links */
+    position: relative; /* Required for positioning the underline */
+    transition: color 0.3s, font-weight 0.3s; /* Smooth transition */
+    margin-right: 30px;
+}
+
+/* Navbar link hover effect */
+ .navbar-nav .nav-link:hover {
+    color: #4b49ac; /* Hover color */
+}
+
+ .navbar-nav .nav-link::after {
+    content: ""; /* No text, just an underline */
+    position: absolute; /* Positioned relative to the link */
+    left: 0;
+    bottom: -5px; /* Adjust as needed for spacing */
+    width: 100%;
+    height: 5px; /* Thickness of the underline */
+    background-color: #4b49ac; /* Primary color for the underline */
+    transition: width 0.3s; /* Smooth transition */
+    transform: scaleX(0); /* Initially hidden */
+    transform-origin: bottom right; /* Position of the transform */
+}
+
+ .navbar-nav .nav-link:hover::after {
+    transform: scaleX(1); /* Show underline on hover */
+    transform-origin: bottom left; /* Animate from left to right */
+}
+#clock::after{
+    content: ""; /* No text, just an underline */
+    position: absolute; /* Positioned relative to the link */
+    left: 0;
+    bottom: -5px; /* Adjust as needed for spacing */
+    width: 100%;
+    height: 0px !important; /* Thickness of the underline */
+    color: #ffffff !important; /* Hover color */
+
+    background-color: #ffffff !important; /* Primary color for the underline */
+    transition: width 0.3s; /* Smooth transition */
+    transform: scaleX(0); /* Initially hidden */
+    transform-origin: bottom right; /* Position of the transform */
+}
+
+
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg ">
+        <a class="navbar-brand" style="margin-left: 50px;" href="{{ url_for('main.admin_dashboard') }}">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Modli Logo" height="50">
+        </a>
+
+        
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item dropdown language-dropdown" style=" padding-top: 10px; ">
+                    <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img id="languageFlag" src="/static/images/egypt_flag.png" alt="Language Flag"> 
+                        <span id="languageText">العربية</span>
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="languageDropdown">
+                        <a class="dropdown-item" href="#" onclick="setLanguage('ar')">
+                            <img src="/static/images/egypt_flag.png" alt="Arabic Flag"> العربية
+                        </a>
+
+                    </div>
+                </li>
+                
+                <li class="nav-item" id="coc">
+                    <span id="clock" class="nav-link"></span>
+                </li>
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" style=" padding-top: 20px; " href="{{ url_for('main.admin_dashboard') }}">القائمة الرئيسية</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" style=" padding-top: 20px; " href="{{ url_for('main.logout') }}">تسجيل خروج</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" style=" padding-top: 20px; " href="{{ url_for('main.login') }}">تسجيل دخول</a>
+                </li>
+
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script>
+        function setLanguage(lang) {
+            // Save the language preference in sessionStorage
+            sessionStorage.setItem('language', lang);
+    
+            // Reload the page to reflect the language change
+            location.reload();
+        }
+    
+        function applyStoredLanguage() {
+            const language = sessionStorage.getItem('language');
+            const flagImage = document.getElementById('languageFlag');
+            const languageText = document.getElementById('languageText');
+    
+            if (language) {
+                if (language === 'ar') {
+                    flagImage.src = '/static/images/egypt_flag.png';
+                    languageText.textContent = 'العربية';
+                } 
+            }
+        }
+    
+        // Apply the stored language when the page loads
+        document.addEventListener('DOMContentLoaded', applyStoredLanguage);
+    
+        function updateClock() {
+            var now = new Date();
+            var hours = now.getHours().toString().padStart(2, '0');
+            var minutes = now.getMinutes().toString().padStart(2, '0');
+            var seconds = now.getSeconds().toString().padStart(2, '0');
+            var day = now.getDate().toString().padStart(2, '0');
+            var month = (now.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based
+            var year = now.getFullYear();
+            var timeString = hours + ':' + minutes + ':' + seconds;
+            var dateString = day + '/' + month + '/' + year;
+            document.getElementById('clock').innerHTML = dateString + ' ' + timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+    
+</body>
+</html>

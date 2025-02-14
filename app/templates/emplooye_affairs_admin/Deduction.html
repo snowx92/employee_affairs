@@ -1,0 +1,419 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+{% block title %}الاجزائات{% endblock %}
+{% block admin_content %}
+
+<div class="jumbotron">
+    <div class="container">
+        <h1 class="display-4">
+             <span class="username">الجزائات</span>
+        </h1>
+        <p class="lead">
+            سوف تظهر الجزائات في مؤثرات الموظفين
+        </p>
+        <hr class="my-4 ">
+    </div>
+</div>
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{{ url_for('main.add_Deduction') }}" class="btn btn-success btn-lg button_font">اضافة الجزائات</a>
+    </div>
+
+    
+    {% if report_data %}
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th onclick="sortTable(0)">ID <span id="arrow0" class="sort-arrow"></span></th>
+                    <th onclick="sortTable(1)">اسم الموظف <span id="arrow1" class="sort-arrow"></span></th>
+                    <th onclick="sortTable(2)">سبب العقوبة <span id="arrow2" class="sort-arrow"></span></th>
+                    <th onclick="sortTable(3)">الخصم <span id="arrow3" class="sort-arrow"></span></th>
+                    <th onclick="sortTable(4)">تاريخ تسجيل العقوبة <span id="arrow4" class="sort-arrow"></span></th>
+                    {% if user_type == 'admin' %}
+                    <th>الاجراءات</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                {% for data in report_data %}
+                <tr class="align-middle">
+                    <td>{{ loop.index }}</td> <!-- Use loop index as ID -->
+                    <td>{{ data.employee_name }}</td>
+                    <td>{{ data.reason }}</td>
+                    <td>{{ data.deduction_points }}</td>
+                    <td>{{ data.submit_date }}</td>
+                    {% if user_type == 'admin' %}
+                    <td>
+                        <form action="{{ url_for('main.delete_Deduction', Deduction_id=data.id) }}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm mx-1" onclick="return confirm('Are you sure you want to delete this Deduction?');">حذف</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    
+    <!-- Pagination Controls -->
+    <div class="container" style="width: fit-content;">
+        <div id="pagination" class="paginate">
+            <button class="prevBtn">
+                <span class="prevBtn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" width="24px" height="24px">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                </span>
+                <span class="prevBtn-text">Prev</span>
+            </button>
+            <div class="containerBtns">
+                <div class="leftContainer"></div>
+                <button class="activeBtn"></button>
+                <div class="rightContainer"></div>
+            </div>
+            <button class="nextBtn">
+                <span class="nextBtn-text">Next</span>
+                <span class="nextBtn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" width="24px" height="24px">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                </span>
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        لا يوجد جزائات في الوقت الحالي 
+    </div>
+    {% endif %}
+
+<script>
+    let sortState = {}; 
+    function sortTable(columnIndex) {
+        const tbody = document.getElementById('tableBody');
+        const rowsArray = Array.from(tbody.querySelectorAll('tr'));
+        let ascending = sortState[columnIndex] === 'asc' ? false : true;
+
+        rowsArray.sort((a, b) => {
+        const aText = a.cells[columnIndex].innerText.trim();
+        const bText = b.cells[columnIndex].innerText.trim();
+        return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+
+    // Update the arrow and sort state
+    updateArrows(columnIndex, ascending);
+    sortState[columnIndex] = ascending ? 'asc' : 'desc';
+
+    // Reattach the sorted rows to the table
+    rowsArray.forEach(row => tbody.appendChild(row));
+
+    }
+    function updateArrows(columnIndex, ascending) {
+    const allArrows = document.querySelectorAll('thead th span');  // Get all arrow spans
+    allArrows.forEach(arrow => arrow.innerText = '↕');  // Reset all arrows to default
+
+    const arrow = document.getElementById('arrow' + columnIndex);
+    arrow.innerText = ascending ? '↑' : '↓';
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const pageSize = 5;
+    let currentPage = 1;
+    let totalPages;
+
+    let rows = Array.from(document.querySelectorAll('#tableBody tr'));
+
+    function paginateTable() {
+        const filteredRows = rows;
+        totalPages = Math.ceil(filteredRows.length / pageSize);
+        displayRows(currentPage, filteredRows);
+        updatePaginationControls();
+    }
+
+    function displayRows(page, filteredRows) {
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+        const paginatedRows = filteredRows.slice(start, end);
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = ''; // Clear the table body
+        paginatedRows.forEach(row => tbody.appendChild(row)); // Append paginated rows
+    }
+
+    function updatePaginationControls() {
+        const paginationControls = document.getElementById('pagination');
+        if (paginationControls) {
+            paginationControls.style.display = 'flex'; // Ensure pagination is visible
+        }
+
+        const prevBtn = document.querySelector('.prevBtn');
+        const nextBtn = document.querySelector('.nextBtn');
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+
+        const leftContainer = document.querySelector('.leftContainer');
+        const rightContainer = document.querySelector('.rightContainer');
+        const activeBtn = document.querySelector('.activeBtn');
+
+        if (leftContainer && rightContainer) {
+            updateButtons(currentPage, totalPages, leftContainer, rightContainer);
+        }
+
+        if (activeBtn) {
+            activeBtn.textContent = currentPage;
+        }
+    }
+
+    function updateButtons(page, totalPages, leftContainer, rightContainer) {
+        const leftPages = page > 5 ? [1, 2, page - 2, page - 1] : Array.from({ length: page - 1 }, (_, i) => i + 1);
+        const rightPages = page >= totalPages - 4 ? Array.from({ length: totalPages - page }, (_, i) => i + page + 1) : [page + 1, page + 2, totalPages - 1, totalPages];
+
+        updateContainer(leftContainer, leftPages);
+        updateContainer(rightContainer, rightPages);
+    }
+
+    function updateContainer(container, pages) {
+        if (!container) return;
+        container.innerHTML = ''; // Clear the container first
+        pages.forEach(page => {
+            const button = document.createElement('button');
+            button.textContent = page;
+            button.classList.add('w-7', 'h-7', 'mx-2', 'numberBtn');
+            button.addEventListener('click', () => {
+                currentPage = Number(button.textContent);
+                paginateTable(); // Reapply pagination after page change
+            });
+            container.appendChild(button);
+        });
+    }
+
+
+
+
+    // Initialize pagination and table
+    paginateTable();
+
+    document.querySelectorAll('thead th').forEach((th, index) => {
+        th.addEventListener('click', () => sortTable(index));
+    });
+
+    document.querySelector('.prevBtn').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            paginateTable();
+        }
+    });
+
+    document.querySelector('.nextBtn').addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            paginateTable();
+        }
+    });
+});
+</script>
+<style>
+        .paginate {
+        padding: 32px 64px;
+        display: flex;
+        justify-content: space-between;
+        background-color: #fff;
+        border-radius: 64px;
+        border: 4px solid rgb(255 222 210)
+    }
+
+    .paginate-details {
+        margin-top: 16px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .paginate button {
+        background-color: transparent;
+        border: none;
+    }
+
+    .nextBtn {
+        margin-left: 32px;
+    }
+
+    .nextBtn {
+        margin-right: 32px;
+    }
+
+    .prevBtn,
+    .nextBtn {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #2a3b52
+    }
+
+    .nextBtn-icon,
+    .prevBtn-icon {
+        display: flex;
+    }
+
+    .prevBtn svg {
+        margin-right: 6px;
+    }
+
+    .nextBtn svg {
+        margin-left: 6px;
+    }
+
+    .prevBtn svg,
+    .nextBtn svg {
+        color: #2a3b52
+    }
+
+    button[disabled].prevBtn,
+    button[disabled].nextBtn {
+        cursor: not-allowed;
+        color: rgb(156 163 175 / var(--tw-text-opacity));
+    }
+
+    .containerBtns {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .leftContainer {
+        display: flex;
+        width: 190px;
+        justify-content: end;
+    }
+
+    .rightContainer {
+        display: flex !important;
+        width: 190px !important;
+        justify-content: start !important;
+    }
+
+    .activeBtn {
+        margin: 0 12px !important;
+        padding: 4px 6px !important;
+        min-width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #5046e5 !important;
+        font-size: 20px !important;
+        color: #fff !important;
+        border-radius: 50% !important;
+        border: 4px solid #c9c6ff !important;
+    }
+
+    .numberBtn {
+        cursor: pointer !important;
+        margin: 0 4px !important;
+        min-width: 40px !important;
+        padding: 4px !important;
+        font-size: 18px !important;
+    }
+
+    .numberBtn[disabled] {
+        cursor: not-allowed
+    }
+    /* Styling for the container holding the button and search bar */
+
+
+/* Search input styling */
+.searchInputWrapper {
+    position: relative;
+}
+
+.searchInput {
+    width: 20rem; /* Adjust width */
+    height: 2.5rem; /* Height of the input */
+    padding: 0 2.5rem 0 1rem; /* Adjust padding for icon */
+    border-radius: 2rem; /* Rounded corners */
+    border: 1px solid #ccc; /* Border for the input */
+    transition: transform 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    font-size: 1rem; /* Font size for readability */
+}
+
+.searchInput::placeholder {
+    color: #a1a1a1; /* Placeholder text color */
+}
+
+.searchInput:focus {
+    outline: none;
+    transform: scale(1.1);
+    border-color: #80bdff; /* Border color on focus */
+}
+
+.searchInputIcon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a1a1a1;
+    transition: all 0.1s ease-in-out;
+}
+
+.searchInputWrapper:focus-within .searchInputIcon {
+    right: 0.75rem; /* Adjust icon position on focus */
+}
+    /* Sorting arrow styles */
+.sort-arrow {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    color: #a1a1a1;
+}
+
+/* Add active sort arrow style */
+.sort-arrow.asc::before {
+    content: '↑';
+}
+
+.sort-arrow.desc::before {
+    content: '↓';
+}
+    .alert-container {
+        animation: fadeIn 1s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1f1f1;
+        transition: background-color 0.3s;
+    }
+
+    .btn-success {
+        transition: transform 0.2s;
+    }
+
+    .btn-success:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}

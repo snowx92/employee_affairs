@@ -1,0 +1,263 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}اذونات توقيتات العمل{% endblock %}
+
+{% block admin_content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4 username">اذونات توقيتات العمل</h1>
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if user_type not in ['employee', 'manager'] %}
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{{ url_for('main.add_job_schedule_override') }}" class="btn btn-success btn-lg button_font"> اضافة اذن توقيت عمل </a>
+    </div>
+
+    <form method="GET" action="{{ url_for('main.job_schedule_override') }}">
+        <div class="form-group">
+            <label for="filter_office_name">التصفية حسب المكتب</label>
+            <select class="form-control" id="filter_office_name" name="filter_office_name">
+                <!-- Add the same options as in the other form -->
+                <option value="">كل المكاتب</option>
+                <option value="تشغيل الحواسب">تشغيل الحواسب</option>
+                <option value="شئون الدارسين">شئون الدارسين</option>
+                <option value="التخطيط">التخطيط</option>
+                <option value="المكتبة">المكتبة</option>
+                <option value="اللغة العبريه">اللغة العبريه</option>
+                <option value="الشئون الفنية">الشئون الفنية</option>
+                <option value="الاجنحه التعليمية">الاجنحه التعليمية</option>
+                <option value="خدمة معاونة">خدمة معاونة</option>
+                <option value="المطبعة">المطبعة</option>
+                <option value="اللغة العربية">اللغة العربية</option>
+                <option value="الدورات التعليمية">الدورات التعليمية</option>
+                <option value="الترجمة">الترجمة</option>
+                <option value="الامتحانات">الامتحانات</option>
+                <option value="التطوير">التطوير</option>
+                <option value="السكرتارية">السكرتارية</option>
+                <option value="الحسابات">الحسابات</option>
+                <option value="متابعة المدير">متابعة المدير</option>
+                <option value="الامن والاستعلامات">الامن والاستعلامات</option>
+                <option value="شئون العاملين المدنيين">شئون العاملين المدنيين</option>
+                <option value="الترجمة المدنية">الترجمة المدنية</option>
+                <option value="قسم الجودة">قسم الجودة</option>
+                <option value="اركان حرب مبنى 1">اركان حرب مبنى 1</option>
+                <option value="اجازة بدون مرتب">اجازة بدون مرتب</option>
+                <option value="انتداب خارج وزارة الدفاع">انتداب خارج وزارة الدفاع</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="filter_employee_name">التصفية حسب الموظف</label>
+            <select class="form-control" id="filter_employee_name" name="filter_employee_name">
+                <option value="">كل الموظفين</option>
+                {% for employee_id, employee_name in employees_with_overrides.items() %}
+                <option value="{{ employee_id }}">{{ employee_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+    {% endif %}
+
+    <form method="GET" action="{{ url_for('main.job_schedule_override') }}">
+        <div class="form-group">
+            <label for="filter_date">التصفية حسب التاريخ</label>
+            <input type="date" class="form-control" id="filter_date" name="filter_date">
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">بحث</button>
+        </div>
+    </form>
+
+    {% if overrides %}
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark" id="head">
+                <tr>
+                    <th>الموظفين</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee_id, employee_name in employees_with_overrides.items() %}
+                <tr class="employee-header">
+                    <td colspan="7" data-toggle="collapse" data-target="#employee{{ employee_id }}" aria-expanded="false" aria-controls="employee{{ employee_id }}" style="cursor: pointer;">
+                        {{ employee_name }} (ID: {{ employee_id }})
+                    </td>
+                </tr>
+                <tr class="collapse" id="employee{{ employee_id }}">
+                    <td colspan="7">
+                        <table class="table table-sm table-bordered override-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="id">ID <span class="sort-arrow">⇅</span></th>
+                                    <th class="sortable" data-sort="date">التاريخ <span class="sort-arrow">⇅</span></th>
+                                    <th>موعد الحضور بعد التعديل</th>
+                                    <th>موعد الانصراف بعد التعديل</th>
+                                    <th class="sortable" data-sort="submit_date">تاريخ الانشاء <span class="sort-arrow">⇅</span></th>
+                                    {% if user_type not in ['employee', 'manager'] %}
+                                    <th>الاجراءات</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for override in overrides %}
+                                {% if override.employee_id == employee_id %}
+                                <tr class="align-middle">
+                                    <td>{{ override.id }}</td>
+                                    <td>{{ override.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ override.job_start_time.strftime('%H:%M:%S') }}</td>
+                                    <td>{{ override.job_end_time.strftime('%H:%M:%S') }}</td>
+                                    <td>{{ override.submit_date.strftime('%Y-%m-%d') }}</td>
+                                    {% if user_type not in ['employee', 'manager'] %}
+                                    <td>
+                                        <form action="{{ url_for('main.delete_job_schedule_override', override_id=override.id) }}" method="post" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm mx-1" onclick="return confirm('هل انت متأكد من حذف هذا الإذن؟');">حذف</button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        لا توجد اذونات توقيتات عمل حاليا.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterOfficeName = document.getElementById('filter_office_name');
+    if (filterOfficeName) {
+        filterOfficeName.addEventListener('change', function () {
+            var office = this.value;
+            fetch('/get_employees/' + office)
+                .then(response => response.json())
+                .then(data => {
+                    var employeeDropdown = document.getElementById('filter_employee_name');
+                    employeeDropdown.innerHTML = '<option value="">كل موظفين المكتب</option>';
+                    data.forEach(employee => {
+                        var option = document.createElement('option');
+                        option.value = employee.id;
+                        option.text = employee.name;
+                        employeeDropdown.appendChild(option);
+                    });
+                });
+        });
+    }
+
+    const getCellValue = (tr, idx) => tr.children[idx]?.innerText || tr.children[idx]?.textContent;
+
+    const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
+        v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+    )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+
+    document.querySelectorAll('.override-table th.sortable').forEach(th => th.addEventListener('click', function () {
+        const table = th.closest('table');
+        const tbody = table.querySelector('tbody');
+        const index = Array.from(th.parentNode.children).indexOf(th);
+        const asc = this.asc = !this.asc;
+
+        Array.from(tbody.querySelectorAll('tr'))
+            .sort(comparer(index, asc))
+            .forEach(tr => tbody.appendChild(tr));
+
+        // Reset all arrows
+        document.querySelectorAll('span.sort-arrow').forEach(span => {
+            span.innerHTML = '⇅';
+        });
+
+        // Set arrow for the current column
+        th.querySelector('span.sort-arrow').innerHTML = asc ? '⇑' : '⇓';
+    }));
+});
+</script>
+
+<style>
+    .alert-container {
+        animation: fadeIn 1s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    #head:hover{
+background-color: #343a40;
+    }
+    .btn-success {
+        transition: transform 0.2s;
+    }
+
+    .btn-success:hover {
+        transform: scale(1.05);
+    }
+
+    .table-bordered td,
+    .table-bordered th {
+        border: 1px solid #dee2e6;
+    }
+
+    .table-sm td,
+    .table-sm th {
+        padding: .3rem;
+    }
+
+    .sortable {
+        cursor: pointer;
+    }
+
+    .sort-arrow {
+        display: inline-block;
+        margin-left: 0.5rem;
+        opacity: 0.5;
+    }
+
+    th.sortable:hover .sort-arrow {
+        opacity: 1;
+    }
+
+    .employee-header:hover {
+        background-color: #f1f1f1;
+        transition: background-color 0.3s ease;
+    }
+
+    .collapse.show {
+        animation: slideDown 0.5s forwards;
+    }
+
+    @keyframes slideDown {
+        from {
+            max-height: 0;
+            opacity: 0;
+        }
+        to {
+            max-height: 1000px;
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}

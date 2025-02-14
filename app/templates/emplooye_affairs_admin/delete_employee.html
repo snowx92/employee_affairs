@@ -1,0 +1,13 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+{% block title %}Add Employee{% endblock %}
+{% block admin_content %}
+    <div class="container">
+        <h2>Confirm Deletion</h2>
+        <p>Are you sure you want to delete this employee?</p>
+        <form method="post">
+            <input type="hidden" name="employee_id" value="{{ employee_id }}">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{{ url_for('main.admin_users') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+{% endblock %}

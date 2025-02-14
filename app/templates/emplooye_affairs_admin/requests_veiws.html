@@ -1,0 +1,1599 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}التصديقات والمتابعات{% endblock %}
+
+{% block admin_content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4 username">التصديقات والمتابعات</h1>
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+
+</div>
+
+
+    <form id="requestsFilterForm" onsubmit="return false;">
+        <div class="row">
+            <div class="col-md-4 form-group">
+                <label for="filter_date">التصفية حسب التاريخ</label>
+                <input type="date" class="form-control filter-control" id="filter_date" name="filter_date">
+            </div>
+        </div>
+    </form>
+
+
+<div id="loading-indicator" class="text-center mt-3" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+</div>
+
+<div id="cont">
+    <div class="row">
+        <div class="col-lg-12 mx-auto">
+            <div id="accordionExample" class="accordion shadow">
+                <!-- Content will be dynamically updated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let refreshTimeout;
+
+    function startRefreshTimer() {
+        // Clear any existing timeout
+        if (refreshTimeout) {
+            clearTimeout(refreshTimeout);
+        }
+        
+        // Set a new timeout to refresh the page after 60 seconds of inactivity
+        refreshTimeout = setTimeout(() => {
+            location.reload();
+        }, 120000); // 120000 ms = 60 seconds
+    }
+    
+    // Reset the timer on any mouse movement
+    document.addEventListener('mousemove', startRefreshTimer);
+    
+    // Initial start of the timer
+    startRefreshTimer();
+    const userType = "{{ user_type }}";
+    const userOffice = "{{ user_office }}";
+
+    let tableData = new Map();
+
+
+
+
+// Add data loading function
+function loadInitialData(category, data) {
+    data.forEach(item => {
+        tableData.set(item.approval_id, { category, ...item });
+    });
+    renderTable();
+}
+
+// Function to render the entire table
+function renderTable() {
+    const tableBody = document.querySelector('tbody');
+    if (!tableBody) return;
+
+    let html = '';
+    let index = 1;
+    tableData.forEach((item, approvalId) => {
+        html += generateTableRow(item.category, item, index++);
+    });
+    tableBody.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+        // Initial load of data with today's date by default
+        const today = new Date();
+        const formattedToday = today.toLocaleDateString('en-CA'); // Format YYYY-MM-DD
+        document.getElementById('filter_date').value = formattedToday;
+        
+        console.log(today)
+        loadRequestsData();
+    
+        // Set up event listeners for filters
+        const filters = document.querySelectorAll('.filter-control');
+        filters.forEach(filter => {
+            filter.addEventListener('change', loadRequestsData);
+        });
+    
+
+    });
+    
+ function loadRequestsData() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        loadingIndicator.style.display = 'block';
+    
+        // Collect the filter value for the date
+        const filter_date = document.getElementById('filter_date').value;
+    
+        // Build the query string
+        const queryString = new URLSearchParams({ filter_date }).toString();
+    
+        // Fetch data from the API
+        fetch(`/api/requests_data?${queryString}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Data received from API:', data);
+                initializeTableData(data); // Initialize our tableData Map
+                updateAccordion(data); // Update the accordion with the received data
+                loadingIndicator.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                document.getElementById('accordionExample').innerHTML = 
+                    '<div class="alert alert-danger">حدث خطأ أثناء تحميل البيانات</div>';
+                loadingIndicator.style.display = 'none';
+            });
+    }
+    // Function to initialize tableData from API response
+function initializeTableData(apiData) {
+    console.log('Initializing table data:', apiData);
+    tableData.clear();
+
+    // Process each category (agaza, altmas, clinic, etc.)
+    Object.entries(apiData).forEach(([category, items]) => {
+        items.forEach(item => {
+            const approvalId = item.approval_id.toString();
+            tableData.set(approvalId, {
+                category,
+                ...item
+            });
+            console.log(`Added ${category} item:`, tableData.get(approvalId));
+        });
+    });
+}
+
+function updateRequestStatus(approvalId, newStatus ,stage) {
+    console.log('Updating request status:', { approvalId, newStatus  ,stage});
+    approvalId = approvalId.toString();
+
+    try {
+        const item = tableData.get(approvalId);
+        if (!item) {
+            console.error('Item not found in tableData:', approvalId);
+            return;
+        }
+        console.log(item)
+        // Update status in tableData'
+        if (stage =='president_approval_status'){
+            console.log("last stage")
+            item.data.approval_status = newStatus;
+            
+        }
+        if (newStatus == 'Rejected'){
+            item.data.approval_status = newStatus;
+        }
+        item[stage] = newStatus;
+        console.log('Updated item in tableData:', item);
+
+        // Find and update the specific table row
+        const category = item.category;
+        const tableBody = document.querySelector(`#collapse${category} tbody`);
+        console.log("tableBody" , tableBody)
+        if (!tableBody) {
+            console.error('Table body not found for category:', category);
+            return;
+        }
+
+// Find the rows with this approval_id
+const rows = tableBody.querySelectorAll(`tr[data-approval-id="${approvalId}"]`);
+console.log("tableBody", tableBody);
+console.log("rows", rows);
+console.log(rows.length);
+
+if (rows.length) {
+    // Generate new row HTML
+    const indexs = Array.from(tableData.entries()).findIndex(([id]) => id === approvalId) + 1;
+    console.log('indexs', indexs);
+    const newRowHtml = generateTableRow(category, item, indexs);
+    console.log("Generated HTML:", newRowHtml); // Debug the generated HTML
+    
+    // Create temporary container and properly wrap the HTML
+    const temp = document.createElement('tbody');
+    temp.innerHTML = newRowHtml;
+    
+    console.log("Temporary container contents:", temp.innerHTML);
+    const newRows = temp.getElementsByTagName('tr');
+    console.log("New rows:", newRows);
+    
+    // Only proceed with replacement if we have new rows
+    if (newRows.length > 0) {
+        // Replace the rows
+        if (newRows[0]) {
+            rows[0].replaceWith(newRows[0].cloneNode(true));
+        }
+        
+        if (rows[1] && newRows[1]) {
+            rows[1].replaceWith(newRows[1].cloneNode(true));
+        }
+
+        // Add highlight animation to the newly replaced row
+        const updatedRow = tableBody.querySelector(`tr[data-approval-id="${approvalId}"]`);
+        if (updatedRow) {
+            updatedRow.classList.add('row-updated');
+            setTimeout(() => updatedRow.classList.remove('row-updated'), 1000);
+        }
+
+        console.log('Row updated successfully');
+    } else {
+        console.error('No new rows were generated from the HTML');
+    }
+}
+    } catch (error) {
+        console.error('Error updating request status:', error);
+    }
+}
+
+function updateAccordion(data) {
+    console.log('updateAccordion' , data)
+        const accordion = document.getElementById('accordionExample');
+        let html = '';
+    
+        // Check if there's any data to display
+        const hasResults = Object.values(data).some(array => array.length > 0);
+    
+        if (!hasResults) {
+            accordion.innerHTML = '<p class="text-center">لا توجد طلبات لعرضها.</p>';
+            return;
+        }
+    
+        // Generate HTML for each category
+        Object.entries(data).forEach(([category, items]) => {
+            if (items.length > 0) {
+                html += generateCategoryAccordion(category, items);
+            }
+        });
+    
+        accordion.innerHTML = html; // Update the accordion with the generated HTML
+    }
+// Modified updateRequestStatus function
+
+function generateCategoryAccordion(category, items) {
+        const categoryTitles = {
+            'agaza': 'اجازات',
+            'clinic': 'عيادات',
+            'ezn': 'اذونات',
+            'altmas': 'التماسات',
+            'momrya': 'مأمورية'
+        };
+    
+        return `
+            <div class="card">
+                <div class="card-header" id="heading${category}"  data-toggle="collapse"  data-target="#collapse${category}" style="cursor: pointer;">
+                    <h2 class="mb-0" style="text-align:center">
+                        <button                                 class="btn btn-link collapsed text-dark font-weight-bold text-uppercase collapsible-link"
+                                style="width: 100%; color: #D2B48C !important; font-weight: 700 !important; font-family: 'Cairo-Bold'; font-size: 25px;">
+                               
+                            ${categoryTitles[category]} (${items.length})
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapse${category}" class="collapse" data-parent="#accordionExample">
+                    <div class="card-body">
+                        ${generateItemsTable(category, items)} <!-- Pass category and items -->
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+function generateItemsTable(category, items) {
+        const headers = getTableHeaders(category); // Get the appropriate headers
+        const actionColumnHeader = '<th>إجراءات</th>'; // Add action column header
+    
+        return `
+            <table class="table table-hover table-striped mt-2">
+                <thead class="table-dark"> 
+                    <tr>
+                        ${headers.map(header => `<th>${header}</th>`).join('')}
+                        ${actionColumnHeader} <!-- Add action column header -->
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map((item, index) => generateTableRow(category, item, index + 1)).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+function getTableHeaders(category) {
+        const commonHeaders = ['NO.', 'الاسم' , 'المكتب'];
+        
+        const specificHeaders = {
+            'clinic': ['التاريخ', 'وقت الخروج', 'وقت العودة', 'التشخيص', 'نوع العيادة'],
+            'agaza': ['من تاريخ', 'إلى تاريخ', 'نوع الاجازة', 'البديل', 'ملاحظات' , 'ملاحظات السيد المدير'],
+            'ezn': ['وقت الخروج', 'وقت العودة', 'موعد الخروج', 'موعد الرجوع'],
+            'altmas': ['الالتماس'],
+            'momrya': [ 'سبب المأمورية', 'من تاريخ', 'إلى تاريخ' , 'وقت الخروج', 'وقت العودة']
+        };
+    
+        return [...commonHeaders, ...specificHeaders[category], 'تاريخ الانشاء'];
+    } 
+
+function displayValue(value , type = false) {
+    if (type == false){
+        return value === null || value === undefined ? 'لم تسجل' : value;
+    }
+    else {
+        return value === null || value === undefined ? 'لا يوجد بديل' : value;
+    }
+    }
+    
+function generateTableRow(category, item, index) {
+        console.log('Generating row for:', { category, item, index });
+        const data = item.data; // Access item data
+        let statusClass = '';
+    
+        switch (data.approval_status) {
+            case 'Pending':
+                statusClass = 'pendingg';
+                break;
+            case 'Approved':
+                statusClass = 'approvedd';
+                break;
+            case 'Rejected':
+                statusClass = 'rejectedd';
+                break;
+            default:
+                statusClass = '';
+        }
+    
+        const commonCells = `
+            <td>${index}</td>
+            <td>${displayValue(data.employee_name)}</td>
+            <td>${displayValue(data.employee_office)}</td>
+        `;
+    
+        let specificCells = '';
+        switch (category) {
+            case 'clinic':
+            specificCells = `
+                <td>${displayValue(data.date)}</td>
+                <td>
+                    <span class="cell-value">${displayValue(formatTime(data.out_time))}</span>
+                    ${canEditField(data, category, 'out_time') ? `
+                        <div class="editable" data-field="out_time" style="display:none;">
+                            <select class="form-control hour-select" style="display:inline-block; width:48%;">
+                                ${generateHourOptions(formatTime(data.out_time))}
+                            </select>
+                            <select class="form-control minute-select" style="display:inline-block; width:48%;">
+                                ${generateMinuteOptions(formatTime(data.out_time))}
+                            </select>
+                        </div>
+                    ` : ''}
+                    ${generateEditButton(data, category, 'out_time')}
+                </td>
+                <td>
+                    <span class="cell-value">${displayValue(formatTime(data.back_time))}</span>
+                    ${canEditField(data, category, 'back_time') ? `
+                        <div class="editable" data-field="back_time" style="display:none;">
+                            <select class="form-control hour-select" style="display:inline-block; width:48%;">
+                                ${generateHourOptions(formatTime(data.back_time))}
+                            </select>
+                            <select class="form-control minute-select" style="display:inline-block; width:48%;">
+                                ${generateMinuteOptions(formatTime(data.back_time))}
+                            </select>
+                        </div>
+                    ` : ''}
+                    ${generateEditButton(data, category, 'back_time')}
+                </td>
+                <td>
+                    <span class="cell-value">${displayValue(data.diagnosis)}</span>
+                    ${canEditField(data, category, 'diagnosis') ? `
+                        <input type="text" value="${displayValue(data.diagnosis)}" class="editable" data-field="diagnosis" style="display:none;" />
+                    ` : ''}
+                    ${generateEditButton(data, category, 'diagnosis')}
+                </td>
+                <td>${displayValue(data.clinic_type)}</td>
+            `;
+            break;
+            case 'agaza':
+            specificCells = `
+                <td>
+                    <span class="cell-value">${displayValue(data.from_date)}</span>
+                    ${canEditField(data, category, 'from_date') ? `
+                        <input type="date" value="${data.from_date}" class="editable" data-field="from_date" style="display:none;" />
+                    ` : ''}
+                    ${generateEditButton(data, category, 'from_date')}
+                </td>
+                <td>
+                    <span class="cell-value">${displayValue(data.to_date)}</span>
+                    ${canEditField(data, category, 'to_date') ? `
+                        <input type="date" value="${data.to_date}" class="editable" data-field="to_date" style="display:none;" />
+                    ` : ''}
+                    ${generateEditButton(data, category, 'to_date')}
+                </td>
+                <td>${displayValue(data.type)}</td>
+
+                <td>${displayValue(data.alternative_officer_name)}</td>
+                <td>
+                    <span class="cell-value">${displayValue(data.notes_agaza)}</span>
+                    ${canEditField(data, category, 'notes_agaza') ? `
+                        <input type="text" value="${displayValue(data.notes_agaza)}" class="editable" data-field="notes_agaza" style="display:none;" />
+                    ` : ''}
+                    ${generateEditButton(data, category, 'notes_agaza')}
+                </td>
+                <td>
+                    <span class="cell-value">${displayValue(data.notes_agaza_manager)}</span>
+                    ${canEditField(data, category, 'notes_agaza_manager') ? `
+                        <input type="text" value="${displayValue(data.notes_agaza_manager)}" class="editable" data-field="notes_agaza_manager" style="display:none;" />
+                    ` : ''}
+                    ${generateEditButton(data, category, 'notes_agaza_manager')}
+                </td>
+            `;
+            break;
+            case 'altmas':
+                specificCells = `
+                    <td>${displayValue(data.petition)}</td>
+                `;
+                break;
+            case 'ezn':
+                specificCells = `
+                    <td>${displayValue(data.from_time)}</td>
+                    <td>${displayValue(data.to_time)}</td>
+                  <td>
+                    <span class="cell-value">${displayValue(formatTime(data.out_time))}</span>
+                    ${canEditField(data, category, 'out_time') ? `
+                        <div class="editable" data-field="out_time" style="display:none;">
+                            <select class="form-control hour-select" style="display:inline-block; width:48%;">
+                                ${generateHourOptions(formatTime(data.out_time))}
+                            </select>
+                            <select class="form-control minute-select" style="display:inline-block; width:48%;">
+                                ${generateMinuteOptions(formatTime(data.out_time))}
+                            </select>
+                        </div>
+                    ` : ''}
+                    ${generateEditButton(data, category, 'out_time')}
+                </td>
+                <td>
+                    <span class="cell-value">${displayValue(formatTime(data.back_time))}</span>
+                    ${canEditField(data, category, 'back_time') ? `
+                        <div class="editable" data-field="back_time" style="display:none;">
+                            <select class="form-control hour-select" style="display:inline-block; width:48%;">
+                                ${generateHourOptions(formatTime(data.back_time))}
+                            </select>
+                            <select class="form-control minute-select" style="display:inline-block; width:48%;">
+                                ${generateMinuteOptions(formatTime(data.back_time))}
+                            </select>
+                        </div>
+                    ` : ''}
+                    ${generateEditButton(data, category, 'back_time')}
+                </td>
+                `;
+                break; 
+            case 'momrya':
+                specificCells = `
+
+                    <td>${displayValue(data.reason)}</td>
+                    <td>${displayValue(data.date)}</td>
+                    <td>${displayValue(data.to_date)}</td>
+                    
+               <td>
+                    <span class="cell-value">${displayValue(formatTime(data.out_time))}</span>
+                    ${canEditField(data, category, 'out_time') ? `
+                        <div class="editable" data-field="out_time" style="display:none;">
+                            <select class="form-control hour-select" style="display:inline-block; width:48%;">
+                                ${generateHourOptions(formatTime(data.out_time))}
+                            </select>
+                            <select class="form-control minute-select" style="display:inline-block; width:48%;">
+                                ${generateMinuteOptions(formatTime(data.out_time))}
+                            </select>
+                        </div>
+                    ` : ''}
+                    ${generateEditButton(data, category, 'out_time')}
+                </td>
+                <td>
+                    <span class="cell-value">${displayValue(formatTime(data.back_time))}</span>
+                    ${canEditField(data, category, 'back_time') ? `
+                        <div class="editable" data-field="back_time" style="display:none;">
+                            <select class="form-control hour-select" style="display:inline-block; width:48%;">
+                                ${generateHourOptions(formatTime(data.back_time))}
+                            </select>
+                            <select class="form-control minute-select" style="display:inline-block; width:48%;">
+                                ${generateMinuteOptions(formatTime(data.back_time))}
+                            </select>
+                        </div>
+                    ` : ''}
+                    ${generateEditButton(data, category, 'back_time')}
+                </td>
+                `;
+                break;           
+            // Add other cases as needed
+        }
+    
+        const submitDateCell = `<td>${displayValue(data.submit_date)}</td>`;
+        const actionButtons = showActionButtons(item , category);
+    
+        return `
+
+
+
+        
+        <tr class="${statusClass}" data-approval-id="${item.approval_id}">
+            ${commonCells}${specificCells}${submitDateCell}${actionButtons}
+        </tr>
+                    <tr data-approval-id="${item.approval_id}">
+                <td colspan="100%">
+                    <div class="progress-wrapper">
+                        ${generateApprovalProgress(item, category)}
+                    </div>
+                </td>
+            </tr>
+    `;
+    }
+    
+function generateApprovalProgress(item, category) {
+        // Define all possible stages
+        const allStages = [
+            { key: 'office_manager_approval_status', label: 'رئيس الفرع' },
+            { key: 'employee_affairs_approval_status', label: 'شئون العاملين المدنيين' },
+            { key: 'secretary_approval_status', label: 'السكرتارية' },
+            { key: 'vice_president_approval_status', label: 'نائب المدير' },
+            { key: 'president_follower_approval_status', label: 'متابعة المدير' },
+            { key: 'president_approval_status', label: 'المدير' }
+        ];
+    
+        // Select stages based on category
+        let activeStages;
+        switch (category) {
+            case 'momrya':
+                activeStages = allStages.filter(stage => 
+                    ['office_manager_approval_status', 'employee_affairs_approval_status'].includes(stage.key)
+                );
+                break;
+            case 'agaza':
+            case 'altmas':
+                activeStages = [...allStages];
+                break;
+            case 'ezn':
+                activeStages = allStages.filter(stage => 
+                    stage.key !== 'secretary_approval_status'
+                );
+                break;
+            case 'clinic':
+                activeStages = allStages.filter(stage => 
+                    ['office_manager_approval_status', 'employee_affairs_approval_status'].includes(stage.key)
+                );
+                break;
+            default:
+                activeStages = [];
+        }
+    
+        // Find the last approved stage among active stages
+        const getLastActiveIndex = () => {
+            let lastIndex = -1;
+            for (let i = 0; i < activeStages.length; i++) {
+                const status = item[activeStages[i].key];
+                if (status == 'Approved') {
+                    lastIndex = i;
+                } else {
+                    break;
+                }
+            }
+            return lastIndex;
+        };
+    
+        const lastActiveIndex = getLastActiveIndex();
+    
+        // Generate HTML for all stages, marking inactive ones appropriately
+        const milestonesHtml = allStages.map((stage, index) => {
+            const isActiveStage = activeStages.some(activeStage => activeStage.key === stage.key);
+            const status = item[stage.key];
+            const statusClass = getStatusClass(status);
+            
+            // A milestone is active if it's in activeStages and either approved or next pending
+            const stageIndex = activeStages.findIndex(s => s.key === stage.key);
+            const isActive = isActiveStage && (
+                stageIndex <= lastActiveIndex || 
+                (stageIndex === lastActiveIndex + 1 && status === 'pending')
+            );
+    
+            const icon = getStatusIcon(status);
+            
+            return `
+                <div class="milestone-container">
+                    <div class="milestone ${statusClass} ${isActive ? 'active' : ''} ${!isActiveStage ? 'inactive' : ''}" 
+                         title="${stage.label}">
+                        <div class="milestone-icon">${icon}</div>
+                        <div class="milestone-label">${stage.label}</div>
+                    </div>
+                    ${index < allStages.length - 1 ? 
+                        `<div class="connector ${isActive && stageIndex <= lastActiveIndex ? 'active' : ''}"></div>` 
+                        : ''}
+                </div>
+            `;
+        }).join('');
+    
+        return `<div class="milestones-wrapper">${milestonesHtml}</div>`;
+    }  
+    // Helper function for status classes
+function getStatusClass(status) {
+        switch (status?.toLowerCase()) {
+            case 'approved':
+                return 'approved';
+            case 'rejected':
+                return 'rejected';
+            case 'pending':
+            default:
+                return 'pending';
+        }
+    }
+
+function getStatusIcon(status) {
+    switch (status) {
+        case 'Approved':
+            return '<i class="fas fa-check"></i>';
+        case 'Rejected':
+            return '<i class="fas fa-times"></i>';
+        case 'Pending':
+            return '<i class="fas fa-clock"></i>';
+        default:
+            return '<i class="fas fa-circle"></i>';
+    }
+}
+
+
+// Function to generate hour options
+function generateHourOptions(currentTime) {
+    const [hours] = currentTime.split(':').map(Number);
+    let hourOptions = '';
+
+    for (let h = 8; h <= 24; h++) {
+        hourOptions += `<option value="${h}" ${h === hours ? 'selected' : ''}>${h}</option>`;
+    }
+
+    return hourOptions;
+}
+// Function to generate minute options with 5-minute intervals
+function generateMinuteOptions(currentTime) {
+    const [, minutes] = currentTime.split(':').map(Number);
+    let minuteOptions = '';
+
+    for (let m = 0; m < 60; m += 5) {
+        minuteOptions += `<option value="${m}" ${m === minutes ? 'selected' : ''}>${m.toString().padStart(2, '0')}</option>`;
+    }
+
+    return minuteOptions;
+}
+
+// Function to handle saving editable cell changes
+function editCell(button , cate) {
+    const cell = button.parentElement;
+    const displaySpan = cell.querySelector('.cell-value');
+    const editableElement = cell.querySelector('.editable');
+    
+    if (editableElement.style.display === 'none') {
+        // Show editable element
+        displaySpan.style.display = 'none';
+        editableElement.style.display = '';
+        button.innerHTML = '<i class="fa-solid fa-check"></i>';
+    } else {
+        // Save changes
+        let newValue;
+        const field = editableElement.dataset.field;
+        const row = button.closest('tr');
+        const approvalId = row.dataset.approvalId;
+        
+        // Get the new value based on field type
+        if (field === 'out_time' || field === 'back_time') {
+            const hourSelect = editableElement.querySelector('.hour-select');
+            const minuteSelect = editableElement.querySelector('.minute-select');
+            
+            // Pad single-digit hours and minutes with leading zeros
+            const hour = hourSelect.value.padStart(2, '0');
+            const minute = minuteSelect.value.padStart(2, '0');
+            
+            // Format the time as "HH:MM"
+            newValue = `${hour}:${minute}`;
+        } else {
+            newValue = editableElement.value;
+        }
+        
+        // Update display and hide editable element
+        displaySpan.textContent = newValue;
+        displaySpan.style.display = '';
+        editableElement.style.display = 'none';
+        button.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+        
+        // Send update to server
+        saveChange(field, newValue, row ,cate);
+    }
+}
+
+// Function to save changes to the server
+function saveChange(field, value, row ,cate) {
+    const requestType = cate; // Make sure to add data-category to your table
+    const requestId = row.dataset.approvalId;
+    
+    const data = {
+        field: field,
+        value: value
+    };
+
+    fetch(`/api/update_request/${requestType}/${requestId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success notification
+            showToast('تم التحديث' ,'success' );
+        } else {
+            // Show success notification
+            showToast('فشل النحديث' ,'error' );
+
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('فشل النحديث' ,'error' );
+
+    });
+}
+
+function formatTime(timeStr) {
+        if (!timeStr) return 'لم تسجل بعد';
+        return timeStr;
+    }
+
+// Debug version of action handlers
+document.addEventListener('click', function(event) {
+    const target = event.target.closest('button[data-action]');
+    if (!target) return;
+
+    console.log('Action button clicked:', {
+        action: target.getAttribute('data-action'),
+        approvalId: target.getAttribute('data-id')
+    });
+
+    const action = target.getAttribute('data-action');
+    const approvalId = target.getAttribute('data-id');
+
+    try {
+        switch (action) {
+            case 'approve':
+                console.log('Sending approve request:', approvalId);
+                approveRequest(approvalId);
+                break;
+            case 'reject':
+                console.log('Sending reject request:', approvalId);
+                rejectRequest(approvalId);
+                break;
+            case 'delete':
+                console.log('Sending delete request:', approvalId);
+                if (confirm('Are you sure you want to delete this request?')) {
+                    deleteRequest(approvalId);
+                }
+                break;
+            case 'print':
+                console.log('Handling print request:', approvalId);
+                printRequest(approvalId);
+                break;
+        }
+    } catch (error) {
+        console.error('Error handling button click:', error);
+    }
+});
+
+
+// Utility function to make AJAX requests
+async function sendRequestAction(data) {
+    try {
+        const response = await fetch('/api/handle_request_action', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Request failed');
+        }
+
+        // Process the successful response
+        switch (result.action_type) {
+            case 'approve':
+                console.log('Processing approve action:', result);
+                updateRequestStatus(result.approval_id, 'Approved', result.stage);
+                showToast(result.message, 'success');
+                break;
+            case 'reject':
+                console.log('Processing reject action:', result);
+                updateRequestStatus(result.approval_id, 'Rejected', result.stage);
+                showToast(result.message, 'error');
+                break;
+            case 'delete':
+                console.log('Processing delete action:', result);
+                removeRequestFromUI(result.approval_id);
+                showToast(result.message, 'error');
+                break;
+            default:
+                console.error('Unknown action type:', result.action_type);
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Error processing request:', error);
+        showToast(error.message || 'An error occurred while processing the request.', 'error');
+        throw error;
+    }
+}
+
+// Action functions
+async function approveRequest(approvalId) {
+    const data = {
+        approval_id: approvalId,
+        action_type: 'approve'
+    };
+    await sendRequestAction(data);
+}
+
+async function rejectRequest(approvalId) {
+    const data = {
+        approval_id: approvalId,
+        action_type: 'reject'
+    };
+    await sendRequestAction(data);
+}
+
+async function deleteRequest(approvalId) {
+    const data = {
+        approval_id: approvalId,
+        action_type: 'delete'
+    };
+    await sendRequestAction(data);
+}
+
+
+function printRequest(report_type, request_id, employee_id) {
+    // Create a hidden iframe if it doesn't already exist
+    let printFrame = document.getElementById('printFrame');
+    if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'printFrame';
+        printFrame.style.display = 'none';
+        document.body.appendChild(printFrame);
+    }
+
+    fetch('/generate_print_report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            report_type: report_type,
+            request_id: request_id,
+            employee_id: employee_id
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Failed to generate report");
+        }
+        return response.text();
+    })
+    .then(reportHtml => {
+        const iframeDoc = printFrame.contentDocument || printFrame.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(reportHtml);
+        iframeDoc.close();
+
+        // Wait for all images to load before printing
+        const images = iframeDoc.getElementsByTagName('img');
+        const imageLoadPromises = Array.from(images).map(img => {
+            return new Promise((resolve, reject) => {
+                if (img.complete) {
+                    resolve();
+                } else {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                }
+            });
+        });
+
+        // Once all images are loaded, trigger the print
+        Promise.all(imageLoadPromises)
+            .then(() => {
+                // Small delay to ensure everything is rendered
+                setTimeout(() => {
+                    printFrame.contentWindow.focus();
+                    printFrame.contentWindow.print();
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Error loading images:', error);
+                alert('Error loading images. Please try again.');
+            });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating report. Please try again.');
+    });
+}
+function removeRequestFromUI(approvalId) {
+    if (tableData.delete(approvalId)) {
+        const rows = document.querySelectorAll(`tr[data-approval-id="${approvalId}"]`);
+        rows.forEach(row => {
+            row.classList.add('row-removing');
+            setTimeout(() => row.remove(), 500);
+        });
+    }
+}
+function showToast(message, type = 'info') {
+    // You can use any toast library here, this is a simple example
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }, 100);
+}
+
+
+function showActionButtons(item  , category) {
+
+    // Base action buttons template
+    const printButton = `<button class="btn btn-primary btn-sm" onclick="printRequest('${item.req_type}', '${item.id}', '${item.employee_id}')"><i class="fa-solid fa-print"></i></button>`;
+    const approveRejectButtons = `
+        <button class="btn btn-success green btn-sm" data-action="approve" data-id="${item.approval_id}"><i class="fa-solid fa-file-signature"></i></button>
+        <button class="btn btn-danger btn-sm" data-action="reject" data-id="${item.approval_id}"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    const deleteButton = `<button class="btn btn-danger btn-sm" data-action="delete" data-id="${item.approval_id}"><i class="fa-solid fa-trash-can"></i></button>`;
+
+    // Check conditions for each button type
+    let showApproveReject = false;
+    let showPrint = false;
+    let showDelete = false;
+
+    // Print button conditions
+    if (item.data.approval_status === 'Approved' && 
+        (userType === 'admin' || userType === 'manager') ) {
+        showPrint = true;
+    }
+    if(category == 'momrya' && (userType === 'admin' || userType === 'manager' || 'attendence')){
+        showDelete = true;
+    }
+    if(category != 'agaza' && userType === 'admin' ){
+        showDelete = true;
+    }
+    // Delete button conditions
+    if (item.data.approval_status === 'Pending' && 
+        item.vice_president_approval_status !== 'Approved') {
+        showDelete = true;
+    }
+    if(category == 'clinic' && (userType === 'admin' || userType === 'manager')){
+        showPrint = true;
+    }
+    
+    console.log('userOffice' ,userOffice)
+    console.log("userType" , userType)
+    console.log('item.president_follower_approval_status' ,item.president_follower_approval_status)
+    console.log(' item.vice_president_approval_status' ,  item.vice_president_approval_status)
+    // Approve/Reject button conditions
+    if ((userType === 'admin' || userType === 'manager') && 
+        userOffice === item.data.employee_office && 
+        item.office_manager_approval_status === 'Pending') {
+        showApproveReject = true;
+    }
+    
+    else if ((userType === 'manager' || userType === 'admin') && 
+        userOffice === 'شئون العاملين المدنيين'  &&
+        item.employee_affairs_approval_status === 'Pending' && 
+        item.office_manager_approval_status === 'Approved') {
+        showApproveReject = true;
+    }
+    
+    else if ((userType === 'manager' || userType === 'admin') && 
+        userOffice === 'السكرتارية' && 
+        item.secretary_approval_status === 'Pending' && 
+        item.employee_affairs_approval_status === 'Approved' && 
+        item.data.approval_status === "Pending") {
+        showApproveReject = true;
+    }
+    
+    else if (userType === 'admin' && 
+        userOffice === 'نائب المدير' && 
+        item.vice_president_approval_status === 'Pending' && 
+        item.secretary_approval_status === 'Approved' && 
+        item.data.approval_status === "Pending") {
+        showApproveReject = true;
+    }
+    
+    
+    else if (userType === 'admin' && 
+        userOffice === 'متابعة المدير' && 
+        item.president_follower_approval_status === 'Pending' && 
+        item.vice_president_approval_status === 'Approved' && 
+        item.data.approval_status === "Pending") {
+        showApproveReject = true;
+    }
+    
+    else if (userType === 'admin' && 
+        userOffice === 'المدير' && 
+        item.president_approval_status === 'Pending' && 
+        item.president_follower_approval_status === 'Approved' && 
+        item.data.approval_status === "Pending") {
+        showApproveReject = true;
+    }
+
+    // Build final action buttons HTML with conditional rendering
+    return `
+        <td style="display:flex">
+            ${showApproveReject ? approveRejectButtons : ''}
+            ${showPrint ? printButton : ''}
+            ${showDelete ? deleteButton : ''}
+        </td>
+    `;
+}
+
+
+function canEditField(data, category, fieldName) {
+    // Handle time fields (out_time and back_time) for all categories
+    if (fieldName === 'out_time' || fieldName === 'back_time') {
+        return data.approval_status === "Approved" && 
+               (userType === 'admin' && userOffice === 'متابعة المدير'  );
+    }
+
+    // Handle diagnosis field for clinic category
+    if (category === 'clinic' && fieldName === 'diagnosis') {
+        return userType === 'admin' && 
+               data.office_manager_approval_status === 'Approved' && 
+               data.approval_status === 'Approved';
+    }
+
+    // Handle fields for momrya category
+    if (category === 'momrya' && (fieldName === 'from_date' || fieldName === 'to_date')) {
+        return userType === 'admin' ;
+    }
+
+    // Handle fields for agaza category
+    if (category === 'agaza') {
+        // Handle date fields
+        if (fieldName === 'from_date' || fieldName === 'to_date') {
+            return userType === 'admin' && 
+                   userOffice === 'المدير' && 
+                   data.president_approval_status === 'Pending' && 
+                   data.president_follower_approval_status === 'Approved' && 
+                   data.approval_status === "Pending";
+        }
+
+        // Handle notes_agaza field
+        if (fieldName === 'notes_agaza') {
+            return (userType === 'admin' || userType === 'manager') && 
+                   data.approval_status === "Pending";
+        }
+
+        // Handle notes_agaza_manager field
+        if (fieldName === 'notes_agaza_manager') {
+            return userType === 'admin' && 
+                   userOffice === 'المدير' && 
+                   data.president_approval_status === 'Pending' && 
+                   data.president_follower_approval_status === 'Approved' && 
+                   data.approval_status === "Pending";
+        }
+    }
+
+    // Default return false if no conditions match
+    return false;
+}
+// Function to generate edit button HTML based on permissions
+function generateEditButton(data, category, fieldName) {
+    if (canEditField(data, category, fieldName)) {
+        return `<button class="btn btn-primary" onclick="editCell(this, '${category}')">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>`;
+    }
+    return ''; // Return empty string if edit not allowed
+}
+// Add some CSS for animations
+const style = document.createElement('style');
+style.textContent = `
+    .row-updated {
+        animation: highlight 1s ease-out;
+    }
+    
+    .row-removing {
+        animation: fadeOut 0.5s ease-out forwards;
+    }
+    
+    @keyframes highlight {
+        0% { background-color: rgba(255, 255, 0, 0.2); }
+        100% { background-color: transparent; }
+    }
+    
+    @keyframes fadeOut {
+        0% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 4px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .toast.show {
+        opacity: 1;
+    }
+    
+    .toast-success { background-color: #4caf50; color: white; }
+    .toast-error { background-color: #f44336; color: white; }
+    .toast-info { background-color: #2196f3; color: white; }
+`;
+document.head.appendChild(style);
+
+</script>
+
+<style>
+    .added-by-row {
+        background-color: #f4f4f4;
+        border-top: 1px solid #ddd;
+    }
+    
+    .added-by-text {
+        text-align: center;
+        font-size: 20px; /* Increased font size */
+        padding: 15px; /* Added padding for better spacing */
+        color: #333;
+        font-weight: bold; /* Make text bold */
+    }
+    
+    .added-by-text i {
+        margin-right: 10px; /* Space between icon and text */
+        color: #4B5320; /* Icon color */
+    }
+    
+    .added-by-animation {
+        display: inline-block;
+        font-weight: bold;
+        color: #4B5320;
+        opacity: 0;
+        animation: fadeIn 2s ease-in-out forwards;
+    }
+    
+    @keyframes fadeIn {
+        0% {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    /* Pending status */
+    .pendingg {
+        background-color: rgba(255, 255, 0, 0.8) !important;
+        /* Yellow with transparency */
+    }
+
+    /* Approved status */
+    .approvedd {
+        background-color: rgba(0, 255, 0, 0.2) !important;
+        /* Green with transparency */
+    }
+
+    /* Rejected status */
+    .rejectedd {
+        background-color: rgba(255, 0, 0, 0.2) !important;
+        /* Red with transparency */
+    }
+
+    .collapsible-link::after {
+        content: '\f078';
+        /* Downward chevron icon */
+        font-family: 'FontAwesome';
+        float: right;
+        font-size: 0.8rem;
+        transition: transform 0.3s ease;
+    }
+
+    .collapsible-link.collapsed::after {
+        content: '\f077';
+        /* Upward chevron icon */
+        transform: rotate(-180deg);
+    }
+
+    .sort-arrow {
+        display: inline;
+        font-size: 0.75rem;
+    }
+
+    .sortable {
+        cursor: pointer;
+    }
+
+    /* Base Styles for Table */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table thead {
+        background-color: #f3f3f3;
+        color: #333;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    /* Filter Dropdown */
+    .relative {
+        position: relative;
+    }
+
+    .bg-white {
+        background-color: white;
+    }
+
+    .rounded {
+        border-radius: 0.25rem;
+    }
+
+    .shadow-lg {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .hover\:bg-gray-100:hover {
+        background-color: #f5f5f5;
+    }
+
+    /* Sorting Arrows */
+    .sort-arrow {
+        display: inline-block;
+        margin-left: 5px;
+    }
+
+    .alert-container {
+        animation: fadeIn 1s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    #head:hover {
+        background-color: #343a40;
+    }
+
+    .btn-success {
+        transition: transform 0.2s;
+    }
+
+    .btn-success:hover {
+        transform: scale(1.05);
+    }
+
+    .table-bordered td,
+    .table-bordered th {
+        border: 1px solid #dee2e6;
+    }
+
+    .table-sm td,
+    .table-sm th {
+        padding: .3rem;
+    }
+
+    .sortable {
+        cursor: pointer;
+    }
+
+    .sort-arrow {
+        display: inline-block;
+        margin-left: 0.5rem;
+        opacity: 0.5;
+    }
+
+    th.sortable:hover .sort-arrow {
+        opacity: 1;
+    }
+
+    .employee-header:hover {
+        background-color: #f1f1f1;
+        transition: background-color 0.3s ease;
+    }
+
+    .collapse.show {
+        animation: slideDown 0.5s forwards;
+    }
+
+    @keyframes slideDown {
+        from {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        to {
+            max-height: 1000px;
+            opacity: 1;
+        }
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background-color: #138496;
+        color: white;
+    }
+
+    .collapse.show {
+        display: block;
+    }
+
+    .table {
+        margin-top: 20px;
+    }
+
+    #cont {
+        margin-top: 0px !important;
+
+    }
+
+    tr th {
+        background: rgb(125, 160, 250, .1);
+        color: forestgreen;
+        font-family: 'Cairo-Bold';
+    }
+
+    @media (min-width: 1200px) {
+        #cont {
+            max-width: 1750px !important;
+        }
+    }
+
+    /* Custom styles for the form */
+    .form-wrapper {
+        max-height: 500px;
+        /* Adjust height as needed */
+        overflow-y: auto;
+        /* Enable vertical scrolling */
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #f9f9f9;
+        animation: fadeIn 1s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+    }
+
+    /* Adjust styling as needed for form controls */
+    .form-control {
+        border-radius: 4px;
+        box-shadow: none;
+    }
+
+
+.milestones-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px ;
+    padding-bottom: 10px ;
+    padding-left: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+
+}
+
+.milestone-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.milestone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.milestone-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    color: white;
+    position: relative;
+    z-index: 2;
+}
+
+.milestone.active .milestone-icon {
+    transform: scale(1.1);
+}
+
+.milestone-label {
+    font-size: 12px;
+    text-align: center;
+    color: #6c757d;
+    max-width: 100px;
+    transition: all 0.3s ease;
+}
+
+.connector {
+    flex: 1;
+    height: 3px;
+    background: #e9ecef;
+    margin: 0 10px;
+    position: relative;
+    top: -10px;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+/* Status-specific styles */
+.milestone.approved .milestone-icon {
+    background: #28a745;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
+.milestone.rejected .milestone-icon {
+    background: #dc3545;
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+}
+
+.milestone.pending .milestone-icon {
+    background: #ffc107;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+.milestone.inactive .milestone-icon {
+    background: #6c757d;
+    opacity: 0.5;
+}
+
+/* Active connector styles */
+.milestone.active + .connector {
+    background: #28a745;
+}
+
+/* Hover effects */
+.milestone:hover {
+    cursor: pointer;
+}
+
+.milestone:hover .milestone-icon {
+    transform: scale(1.15);
+}
+
+.milestone:hover .milestone-label {
+    color: #343a40;
+}
+/* Add active state for connectors */
+.connector.active {
+    background: #28a745;
+}
+
+/* Ensure inactive states are clearly visible */
+.milestone.inactive .milestone-icon {
+    background: #e9ecef;
+    opacity: 0.5;
+    box-shadow: none;
+}
+
+/* Adjust the pending state to be more visible when active */
+.milestone.pending.active .milestone-icon {
+    opacity: 1;
+    animation: pulse 2s infinite;
+}
+
+/* Animation for status changes */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.milestone.approved .milestone-icon,
+.milestone.rejected .milestone-icon,
+.milestone.pending .milestone-icon {
+    animation: pulse 2s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .milestone-label {
+        font-size: 10px;
+        max-width: 60px;
+    }
+    
+    .milestone-icon {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .connector {
+        margin: 0 5px;
+        top: -20px;
+    }
+}
+
+</style>
+{% endblock %}

@@ -1,0 +1,547 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تحكم الموظفين{% endblock %}
+
+{% block admin_content %}
+<style>
+    .paginate {
+        padding: 32px 64px;
+        display: flex;
+        justify-content: space-between;
+        background-color: #fff;
+        border-radius: 64px;
+        border: 4px solid rgb(255 222 210)
+    }
+
+    .paginate-details {
+        margin-top: 16px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .paginate button {
+        background-color: transparent;
+        border: none;
+    }
+
+    .nextBtn {
+        margin-left: 32px;
+    }
+
+    .nextBtn {
+        margin-right: 32px;
+    }
+
+    .prevBtn,
+    .nextBtn {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #2a3b52
+    }
+
+    .nextBtn-icon,
+    .prevBtn-icon {
+        display: flex;
+    }
+
+    .prevBtn svg {
+        margin-right: 6px;
+    }
+
+    .nextBtn svg {
+        margin-left: 6px;
+    }
+
+    .prevBtn svg,
+    .nextBtn svg {
+        color: #2a3b52
+    }
+
+    button[disabled].prevBtn,
+    button[disabled].nextBtn {
+        cursor: not-allowed;
+        color: rgb(156 163 175 / var(--tw-text-opacity));
+    }
+
+    .containerBtns {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .leftContainer {
+        display: flex;
+        width: 190px;
+        justify-content: end;
+    }
+
+    .rightContainer {
+        display: flex !important;
+        width: 190px !important;
+        justify-content: start !important;
+    }
+
+    .activeBtn {
+        margin: 0 12px !important;
+        padding: 4px 6px !important;
+        min-width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #5046e5 !important;
+        font-size: 20px !important;
+        color: #fff !important;
+        border-radius: 50% !important;
+        border: 4px solid #c9c6ff !important;
+    }
+
+    .numberBtn {
+        cursor: pointer !important;
+        margin: 0 4px !important;
+        min-width: 40px !important;
+        padding: 4px !important;
+        font-size: 18px !important;
+    }
+
+    .numberBtn[disabled] {
+        cursor: not-allowed
+    }
+    /* Styling for the container holding the button and search bar */
+.d-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem; /* Adjust spacing */
+}
+
+/* Button Styling */
+.btn-success {
+    font-size: 1rem; /* Consistent font size */
+    padding: 0.75rem 1.25rem; /* Padding for better appearance */
+    border-radius: 2rem; /* Rounded corners */
+    font-family: 'Arial', sans-serif; /* Custom font family */
+}
+
+/* Search input styling */
+.searchInputWrapper {
+    position: relative;
+}
+
+.searchInput {
+    width: 20rem; /* Adjust width */
+    height: 2.5rem; /* Height of the input */
+    padding: 0 2.5rem 0 1rem; /* Adjust padding for icon */
+    border-radius: 2rem; /* Rounded corners */
+    border: 1px solid #ccc; /* Border for the input */
+    transition: transform 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    font-size: 1rem; /* Font size for readability */
+}
+
+.searchInput::placeholder {
+    color: #a1a1a1; /* Placeholder text color */
+}
+
+.searchInput:focus {
+    outline: none;
+    transform: scale(1.1);
+    border-color: #80bdff; /* Border color on focus */
+}
+
+.searchInputIcon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a1a1a1;
+    transition: all 0.1s ease-in-out;
+}
+
+.searchInputWrapper:focus-within .searchInputIcon {
+    right: 0.75rem; /* Adjust icon position on focus */
+}
+
+.edit-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+.edit-btn:hover {
+    background-color: #0056b3;
+}
+.edit-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.time-select {
+    width: 60px;
+    padding: 5px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+.edit-form button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.edit-form button[type="submit"] {
+    background-color: #28a745;
+    color: white;
+}
+.edit-form button[type="submit"]:hover {
+    background-color: #218838;
+}
+.edit-form button[type="button"] {
+    background-color: #dc3545;
+    color: white;
+}
+.edit-form button[type="button"]:hover {
+    background-color: #c82333;
+}
+.time-display {
+    min-width: 80px;
+}
+</style>
+
+<div class="container py-5" style="max-width: 100%;">
+    <div class="jumbotron">
+        <div class="container">
+            <h1 class="display-4">
+                <span class="username">الموظفين</span>
+            </h1>
+            <p class="text-center mb-4 lead">يمكنك إدارة كل موظفيك من هنا </p>
+            <hr class="my-4 ">
+        </div>
+    </div>
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <div class="d-flex justify-content-between align-items-center mb-4" style="
+    justify-content: space-around !important;
+    flex-direction: row !important;
+">
+<h2></h2>
+        <div class="searchInputWrapper">
+            <input style="text-align: center;" type="text" id="searchBar" class="searchInput" placeholder="ابحث بالاسم أو الرقم التعريفي">
+            <i class="searchInputIcon fa fa-search"></i>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-striped animated-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th style="cursor:pointer;" onclick="sortTable(0)">الرقم التعريفي <span id="arrow0">↕</span></th>
+                    <th style="cursor:pointer;" onclick="sortTable(1)">الاسم <span id="arrow1">↕</span></th>
+                    <th style="cursor:pointer;" onclick="sortTable(2)">الفترة <span id="arrow4">↕</span></th>
+                    <th style="cursor:pointer;" onclick="sortTable(3)">موعد الحضور <span id="arrow5">↕</span></th>
+                    <th style="cursor:pointer;" onclick="sortTable(4)">موعد الانصراف <span id="arrow6">↕</span></th>
+                    <th style="cursor:pointer;" onclick="sortTable(3)">تسجيل الحضور <span id="arrow5">↕</span></th>
+                    <th style="cursor:pointer;" onclick="sortTable(4)">تسجيل الانصراف <span id="arrow6">↕</span></th>
+                    <th>الصورة</th>
+                    <th>أجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTable">
+                {% for record in attendance_records %}
+                <tr>
+                    <td>{{ record.employee.id }}</td>
+                    <td>{{ record.employee.name }}</td>
+                    <td>{{ record.employee.period }}</td>
+                    <td>{{ record.employee.job_start_time }}</td>
+                    <td>{{ record.employee.job_end_time }}</td>
+                    <td class="time-cell">
+                        <span class="time-display" data-type="check_in">
+                            {% if record.check_in_time %}
+                                {{ record.check_in_time }}
+                            {% else %}
+                                لم تسجل بعد
+                            {% endif %}
+                        </span>
+                        <button class="edit-btn btn-sm" data-type="check_in" data-employee-id="{{ record.employee.id }}">تعديل</button>
+                    </td>
+                    <td class="time-cell">
+                        <span class="time-display" data-type="check_out">
+                            {% if record.check_out_time %}
+                                {{ record.check_out_time }}
+                            {% else %}
+                                لم تسجل بعد
+                            {% endif %}
+                        </span>
+                        <button class="edit-btn btn-sm" data-type="check_out" data-employee-id="{{ record.employee.id }}">تعديل</button>
+                    </td>
+                    <td>
+                        {% if record.employee.photo %}
+                        <img src="{{ url_for('static', filename='emp_imgs/' + record.employee.photo) }}" alt="Photo" class="img-thumbnail">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='emp_imgs/profile.png') }}" alt="Photo" class="img-thumbnail">
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('main.delete_attendence', employee_id=record.employee.id) }}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm mx-1"
+                                onclick="return confirm('هل انت متاكد انك تريد حذف هذا التسجيل?');">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="container" style="width: fit-content;">
+            <div id="pagination" class="paginate">
+                <button class="prevBtn">
+                    <span class="prevBtn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" width="24px" height="24px">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                        </svg>
+                    </span>
+                    <span class="prevBtn-text">Prev</span>
+                </button>
+                <div class="containerBtns">
+                    <div class="leftContainer"></div>
+                    <button class="activeBtn"></button>
+                    <div class="rightContainer"></div>
+                </div>
+                <button class="nextBtn">
+                    <span class="nextBtn-text">Next</span>
+                    <span class="nextBtn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" width="24px" height="24px">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </span>
+                </button>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+<script>
+
+    $(document).ready(function() {
+        // Use event delegation for edit buttons inside time-cell within tbody
+        $('tbody').on('click', '.edit-btn', function() {
+            var type = $(this).data('type');
+            var employeeId = $(this).data('employee-id');
+            var cell = $(this).closest('.time-cell');
+            var display = cell.find('.time-display');
+            var currentTime = display.text().trim();
+            var editBtn = $(this);  // Store reference to the edit button
+    
+            // Create form elements
+            var form = $('<form>')
+                .attr('method', 'POST')
+                .attr('action', '/update_time')
+                .addClass('edit-form');
+    
+            var hoursSelect = $('<select>')
+                .attr('name', 'hours')
+                .addClass('time-select');
+            for (var i = 0; i < 24; i++) {
+                hoursSelect.append($('<option>').val(i).text(i.toString().padStart(2, '0')));
+            }
+    
+            var minutesSelect = $('<select>')
+                .attr('name', 'minutes')
+                .addClass('time-select');
+            for (var i = 0; i < 60; i++) {
+                minutesSelect.append($('<option>').val(i).text(i.toString().padStart(2, '0')));
+            }
+    
+            var submitBtn = $('<button>')
+                .attr('type', 'submit')
+                .text('تأكيد');
+    
+            var cancelBtn = $('<button>')
+                .attr('type', 'button')
+                .text('إلغاء')
+                .on('click', function() {
+                    form.remove();
+                    display.show();
+                    editBtn.show();  // Show the edit button when canceling
+                });
+    
+            form.append(hoursSelect, ':', minutesSelect, submitBtn, cancelBtn);
+            form.append($('<input>').attr('type', 'hidden').attr('name', 'type').val(type));
+            form.append($('<input>').attr('type', 'hidden').attr('name', 'employee_id').val(employeeId));
+    
+            display.hide();
+            editBtn.hide();  // Hide the edit button when the form is displayed
+            cell.append(form);
+    
+            // Set initial values if the time is already set
+            if (currentTime !== 'لم تسجل بعد') {
+                var [hours, minutes] = currentTime.split(':');
+                hoursSelect.val(parseInt(hours));
+                minutesSelect.val(parseInt(minutes));
+            }
+        });
+    });
+let sortState = {};  // Keeps track of the sorting state for each column
+
+function sortTable(columnIndex) {
+    const table = document.querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.rows);
+    let ascending = sortState[columnIndex] === 'asc' ? false : true;  // Toggle the sort state
+
+    rows.sort((a, b) => {
+        const aText = a.cells[columnIndex].innerText.trim();
+        const bText = b.cells[columnIndex].innerText.trim();
+        return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+
+    // Update the arrow and sort state
+    updateArrows(columnIndex, ascending);
+    sortState[columnIndex] = ascending ? 'asc' : 'desc';
+
+    // Reattach the sorted rows to the table
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function updateArrows(columnIndex, ascending) {
+    const allArrows = document.querySelectorAll('thead th span');  // Get all arrow spans
+    allArrows.forEach(arrow => arrow.innerText = '↕');  // Reset all arrows to default
+
+    const arrow = document.getElementById('arrow' + columnIndex);
+    arrow.innerText = ascending ? '↑' : '↓';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Get references to DOM elements
+    const searchBar = document.getElementById('searchBar');
+    const table = document.querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const prevBtn = document.querySelector('.prevBtn');
+    const nextBtn = document.querySelector('.nextBtn');
+    const leftContainer = document.querySelector('.leftContainer');
+    const rightContainer = document.querySelector('.rightContainer');
+    const activeBtn = document.querySelector('.activeBtn');
+
+    if (!tbody) {
+        console.error('Error: tbody element not found');
+        return;
+    }
+
+    let rows = Array.from(tbody.querySelectorAll('tr')); // Initialize rows
+    const pageSize = 5;
+    let totalPages;
+    let currentPage = parseInt(localStorage.getItem('currentPage')) || 1; // Get the saved page number or default to 1
+
+    function paginateTable() {
+        // Filter rows based on the search input
+        let filteredRows = rows.filter(row => {
+            const idCell = row.querySelector('td:first-child').textContent.toLowerCase();
+            const nameCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            return idCell.includes(searchBar.value.toLowerCase()) || nameCell.includes(searchBar.value.toLowerCase());
+        });
+
+        totalPages = Math.ceil(filteredRows.length / pageSize);
+        currentPage = Math.min(currentPage, totalPages); // Ensure currentPage does not exceed totalPages
+        displayRows(currentPage, filteredRows);
+        updatePaginationControls(currentPage); // Update pagination controls
+        updateButtons(currentPage); // Update buttons display
+        localStorage.setItem('currentPage', currentPage); // Save the current page number
+    }
+
+    function displayRows(page, filteredRows) {
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+        const paginatedRows = filteredRows.slice(start, end);
+
+        tbody.innerHTML = ''; // Clear the table body
+        paginatedRows.forEach(row => tbody.appendChild(row)); // Append paginated rows
+    }
+
+    function updateButtons(page) {
+        prevBtn.disabled = page === 1;
+        nextBtn.disabled = page === totalPages;
+        activeBtn.textContent = page;
+    }
+
+    function updatePaginationControls(page) {
+        if (page <= 5) {
+            updateContainer(leftContainer, Array.from({ length: page - 1 }, (_, i) => i + 1), []);
+        } else {
+            updateContainer(leftContainer, [1, 2, page - 2, page - 1], [1]);
+        }
+
+        if (page >= totalPages - 4) {
+            const tail = totalPages - page;
+            updateContainer(rightContainer, Array.from({ length: tail }, (_, i) => i + page + 1), []);
+        } else {
+            updateContainer(rightContainer, [page + 1, page + 2, totalPages - 1, totalPages], [1]);
+        }
+    }
+
+    function createButton(text, classNames = [], disabled = false) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.classList.add(...classNames);
+        button.disabled = disabled;
+        return button;
+    }
+
+    function updateContainer(container, array, disabledIndexes = []) {
+        if (!container) return; // Check if container exists
+        container.innerHTML = '';  // Clear the container first
+        for (let i = 0; i < array.length; i++) {
+            const text = disabledIndexes.includes(i) ? '...' : array[i];
+            const button = createButton(text, ['w-7', 'h-7', 'mx-2', 'numberBtn'], disabledIndexes.includes(i));
+            button.addEventListener('click', handleBtnNumbers);
+            container.appendChild(button);
+        }
+    }
+
+    function handleBtnNumbers(e) {
+        const target = e.target.closest('.numberBtn')?.textContent;
+        if (target) {
+            currentPage = Number(target);
+            paginateTable(); // Reapply pagination after page change
+        }
+    }
+
+    // Event Listeners
+    searchBar.addEventListener('input', () => {
+        currentPage = 1;  // Reset to the first page when filtering
+        paginateTable();
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            paginateTable(); // Reapply pagination after page change
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            paginateTable(); // Reapply pagination after page change
+        }
+    });
+
+    paginateTable(); // Initial pagination setup
+});
+</script>
+{% endblock %}

@@ -1,0 +1,655 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}لوحة القيادة{% endblock %}
+
+{% block admin_content %}
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+
+<!-- Add local animate.min.css -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animate.min.css') }}">
+
+<style>
+    body {
+        background-color: #F5F7FF;
+    }
+
+    .jumbotron {
+        box-shadow: 0px 5px 21px -5px #CDD1E1;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 0 !important;
+        font-weight: 400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* Full viewport height */
+        text-align: center;
+        color: #333;
+        /* Text color, adjust as needed */
+    }
+
+
+
+    .icon {
+        margin-bottom: 20px;
+        font-size: 3rem;
+        /* Adjust size as needed */
+        color: #7da0fa;
+        /* Primary color from your palette */
+    }
+
+    .jumbotron .display-4 {
+        font-size: 2.5rem;
+        /* Adjust font size as needed */
+        color: #343a40;
+        /* Adjust color from your palette */
+    }
+
+    .jumbotron .lead {
+        font-size: 1.25rem;
+        /* Adjust font size as needed */
+        color: #6c757d;
+        /* Adjust color from your palette */
+    }
+
+    .jumbotron hr {
+        border-color: #7da0fa;
+        /* Primary color for the horizontal rule */
+    }
+
+    .username {
+        color: #7da0fa;
+        /* Primary color from your palette */
+        font-weight: bold;
+        /* Ensure the username is bold */
+    }
+
+    .lead {
+        font-size: 1.25rem;
+        /* Adjust font size as needed */
+        color: #6c757d;
+        /* Adjust color from your palette */
+        font-weight: bold;
+        /* Make text bold */
+    }
+
+    .jumbotron hr {
+        border: none;
+        height: 10px;
+        border-color: #7da0fa;
+        background: #7da0fa;
+    }
+
+    .dashboard-container {
+        display: flex;
+        flex-wrap: wrap;
+
+        justify-content: space-around;
+
+    }
+
+    .dashboard-box {
+        margin-bottom: 10px;
+        box-shadow: 0px 5px 21px -5px #7da0fa;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        width: 23%;
+        font-weight: 400;
+        color: #4b49ac;
+        position: relative;
+    }
+
+    .dashboard-box:nth-child(odd) {
+        box-shadow: 0px 5px 21px -5px #7978e9;
+    }
+
+    .dashboard-box:nth-child(even) {
+        box-shadow: 0px 5px 21px -5px #98bdff;
+    }
+
+    .dashboard-box h3 {
+        margin-bottom: 15px;
+        color: #4b49ac;
+        /* Primary color */
+        font-weight: bold;
+        font-size: 25px;
+    }
+
+    .dashboard-box p {
+        font-size: 28px;
+        color: #000;
+        /* Black color for numbers */
+        font-weight: bold;
+        margin-top: 10px;
+        animation: counter 2s;
+    }
+
+    @keyframes counter {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .dashboard-box i {
+        font-size: 40px;
+        color: #f3797e;
+        /* Secondary color */
+
+        top: 10px;
+        right: 10px;
+    }
+
+    .date-container {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 20px;
+        color: #4b49ac;
+        /* Primary color */
+        font-weight: bold;
+    }
+
+    .points-container {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 2rem;
+    }
+
+    .point-card {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 1rem;
+        width: 30%;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .point-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .point-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .tar7eel .point-icon {
+        color: #3498db;
+    }
+
+    .sanwya .point-icon {
+        color: #2ecc71;
+    }
+
+    .arda .point-icon {
+        color: #e74c3c;
+    }
+
+    .point-label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .point-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .smalow{
+        font-size: larger !important;
+        color: #f3797e !important;
+        margin: 0 !important;
+    }
+</style>
+
+<script>
+        // Function to refresh the page every 10 seconds (10000 milliseconds)
+        setInterval(function() {
+            location.reload();
+        }, 30000);  // 10000 milliseconds = 10 seconds
+    // Function to animate the counter
+    function animateCounter(element, endValue) {
+        let startValue = 0;
+        const duration = 500;
+        const startTime = performance.now();
+
+        function updateCounter(currentTime) {
+            const elapsedTime = currentTime - startTime;
+            const progress = Math.min(elapsedTime / duration, 1);
+            element.innerText = Math.floor(progress * endValue);
+
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            }
+        }
+
+        requestAnimationFrame(updateCounter);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Animate all counter elements
+        document.querySelectorAll('.counter').forEach(element => {
+            const endValue = parseInt(element.innerText, 10);
+            element.innerText = '0';
+            animateCounter(element, endValue);
+        });
+    });
+</script>
+
+<div class="jumbotron">
+    <div class="container">
+        <div class="icon">
+            <i class="fas fa-user-circle"></i>
+        </div>
+        <h1 class="display-4">
+            <span class="username">{{ current_user.name }}</span>
+        </h1>
+        <p class="lead">
+            {% if current_user.user_type == 'admin' %}
+            هذه هي صفحة لوحة القيادة الخاصة بـ إدارة
+            {% elif current_user.user_type == 'manager' %}
+            هذه هي صفحة لوحة القيادة الخاصة بـ رئيس فرع
+            {% elif current_user.user_type == 'employee' %}
+            هذه هي صفحة لوحة القيادة الخاصة بـ موظف
+
+            {% elif current_user.user_type == 'attendance' %}
+            هذه هي صفحة لوحة القيادة الخاصة بـ تسجيل الحضور
+            {% else %}
+            هذه هي صفحة لوحة القيادة الخاصة بـ
+            {% endif %}
+        </p>
+        <hr class="my-4">
+        <p class="lead">
+            {% if current_user.user_type == 'admin' %}
+            أنت مسجل دخولك كــ إدارة
+                <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+            {% elif current_user.user_type == 'manager' %}
+            أنت مسجل دخولك كــ رئيس فرع
+            {% elif current_user.user_type == 'employee' %}
+            أنت مسجل دخولك كــ موظف
+            {% elif current_user.user_type == 'attendance' %}
+            أنت مسجل دخولك كــ تسجيل الحضور
+            {% else %}
+            أنت مسجل دخولك كــ
+            {% endif %}
+        </p>
+        {% if current_user.user_type == 'employee' %}
+        <div class="points-container">
+            <div class="point-card tar7eel">
+                <div class="point-icon"><i class="fas fa-plane-departure"></i></div>
+                <span class="point-label">رصيد مرحل</span>
+                <span class="point-value">{{ points.tar7eel_points }}</span>
+            </div>
+            <div class="point-card sanwya">
+                <div class="point-icon"><i class="fas fa-calendar-alt"></i></div>
+                <span class="point-label">رصيد اعتيادي</span>
+                <span class="point-value">{{ points.sanwya_points }}</span>
+            </div>
+            <div class="point-card arda">
+                <div class="point-icon"><i class="fas fa-clock"></i></div>
+                <span class="point-label">رصيد عارضة</span>
+                <span class="point-value">{{ points.arda_points }}</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="dashboard-container">
+
+    {% if user_type == 'admin' %}
+    <div class="dashboard-box">
+        <i class="fas fa-sign-in-alt"></i>
+        <h3> الحضور</h3>
+        <div class="flex">
+            <div>
+                <a  href="{{ url_for('main.reports', report_type='check_in_attendance', period='الفترة المسائية') }}">
+                <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                <p class="counter m-0">{{ data.check_in_attendance_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a  href="{{ url_for('main.reports', report_type='check_in_attendance', period='الفترة الصباحية') }}">
+                <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                <p class="counter m-0">{{ data.check_in_attendance_m }}</p>
+            </a>
+            </div>
+        </div>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-sign-out-alt"></i>
+        <h3>الانصراف</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='check_out_attendance', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.check_out_attendance_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='check_out_attendance', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.check_out_attendance_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dashboard-box">
+        <i class="fas fa-clock"></i>
+        <h3>التأخير</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='check_in_delays', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.check_in_delays_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='check_in_delays', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.check_in_delays_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dashboard-box">
+        <i class="fas fa-hospital-alt"></i>
+        <h3>العيادة</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='clinic', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.clinic_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='clinic', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.clinic_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+
+    
+    <div class="dashboard-box">
+        <i class="fas fa-plane-departure"></i>
+        <h3>الاجازة</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='agaza_only', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.agaza_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='agaza_only', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.agaza_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    
+    <div class="dashboard-box">
+        <i class="fa-solid fa-landmark"></i>
+        <h3>انتداب</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='entdab', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.entdab_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='entdab', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.entdab_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+        
+    <div class="dashboard-box">
+        <i class="fa-solid fa-sack-xmark"></i>
+        <h3>بدون مرتب</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='no_salary', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.no_salary_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='no_salary', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.no_salary_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+
+
+    <div class="dashboard-box">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <h3>  الفرق / الدورات التعليمية </h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='fr2a', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.fr2a_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='fr2a', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.fr2a_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-box">
+        <i class="fas fa-file-alt"></i>
+        <h3>الاذن</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='ezn', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.ezn_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='ezn', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.ezn_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="dashboard-box">
+        <i class="fa-solid fa-hands-praying"></i>
+        <h3>الالتماسات</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='altmas', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.altmas_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='altmas', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.altmas_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="dashboard-box">
+        <i class="fa-solid fa-bed"></i>
+        <h3>الراحة</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='rest', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.rest_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='rest', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.rest_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div> 
+
+    <div class="dashboard-box">
+        <i class="fa-solid fa-person-circle-xmark"></i>
+        <h3>الغياب</h3>
+        <div class="flex">
+            <div>
+                <a href="{{ url_for('main.reports', report_type='absent', period='الفترة المسائية') }}">
+                    <i class="fa-regular fa-moon" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.absent_e }}</p>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.reports', report_type='absent', period='الفترة الصباحية') }}">
+                    <i class="fa-regular fa-sun" style="position:static; color:#7da0fa"></i>
+                    <p class="counter m-0">{{ data.absent_m }}</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+
+    {% endif %}
+    {% if user_type == 'employee' %}
+    <div class="dashboard-box">
+        <i class="fas fa-sign-in-alt"></i>
+        <h3>تسجيلات الحضور</h3>
+        <p class="counter">{{ data.check_in_attendance }}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-sign-out-alt"></i>
+        <h3>الانصراف</h3>
+        <p class="counter">{{ data.check_out_attendance }}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-clock"></i>
+        <h3>التأخيرات</h3>
+        <p class="counter">{{ data.check_in_delays }}</p>
+    </div>
+
+    <div class="dashboard-box">
+        <i class="fas fa-hospital-alt"></i>
+        <h3>العيادات</h3>
+        <p class="counter">{{ data.clinic }}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-file-alt"></i>
+        <h3>الاذونات</h3>
+        <p class="counter">{{ data.ezn}}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-plane-departure"></i>
+        <h3>الاجازات</h3>
+        <p class="counter">{{ data.agaza }}</p>
+    </div>
+
+    <div class="dashboard-box"  >
+        <i class="fa-solid fa-hands-praying"></i>
+        <h3>الالتماسات</h3>
+        <p class="counter">{{ data.altmas }}</p>
+    </div>
+    <div class="dashboard-box"  >
+        <i class="fa-solid fa-person-circle-xmark"></i>
+        <h3>الغيابات</h3>
+        <p class="counter">{{ data.absent }}</p>
+    </div>
+    {% endif %}
+
+{% if user_type == 'manager' %}
+    <div class="dashboard-box">
+        <i class="fas fa-sign-in-alt"></i>
+        <h3>تسجيلات الحضور</h3>
+        <p class="counter">{{ data.check_in_attendance }}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-sign-out-alt"></i>
+        <h3>الانصراف</h3>
+        <p class="counter">{{ data.check_out_attendance }}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-clock"></i>
+        <h3>التأخيرات</h3>
+        <p class="counter">{{ data.check_in_delays }}</p>
+    </div>
+
+    <div class="dashboard-box">
+        <i class="fas fa-hospital-alt"></i>
+        <h3>العيادات</h3>
+        <p class="counter">{{ data.clinic }}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-file-alt"></i>
+        <h3>الاذونات</h3>
+        <p class="counter">{{ data.ezn}}</p>
+    </div>
+    <div class="dashboard-box">
+        <i class="fas fa-plane-departure"></i>
+        <h3>الاجازات</h3>
+        <p class="counter">{{ data.agaza }}</p>
+    </div>
+    <div class="dashboard-box"  >
+        <i class="fa-solid fa-bed"></i>
+        <h3>الراحات</h3>
+        <p class="counter">{{ data.rest }}</p>
+    </div>
+    <div class="dashboard-box"  >
+        <i class="fa-solid fa-hands-praying"></i>
+        <h3>الالتماسات</h3>
+        <p class="counter">{{ data.altmas }}</p>
+    </div>
+
+    {% endif %}
+</div>
+<div class="date-container">
+
+    {% if user_type != 'employee' %}
+    <p> نظرة سريعة ليوم {{ current_date }}</p>
+    {% endif %}
+    {% if user_type == 'employee' %}
+    <p> نظرة سريعة من يوم {{ date_from }} الي {{date_to}}</p>
+    {% endif %}
+</div>
+
+{% endblock %}

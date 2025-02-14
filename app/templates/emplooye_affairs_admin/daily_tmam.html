@@ -1,0 +1,86 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تمام العاملين المدنين{% endblock %}
+
+{% block admin_content %}
+
+<div class="jumbotron">
+    <div class="container">
+  
+        <h1 class="display-4">
+             <span class="username">تمام العاملين المدنين</span>
+        </h1>
+        <p class="lead">
+            يومية تمام لجميع الايام
+        </p>
+        <hr class="my-4 ">
+
+    </div>
+  </div>
+<div class="container mt-5">
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+
+
+    <form method="POST" action="{{ url_for('main.tmam') }}">
+
+        <div class="form-group">
+            <label for="report_date">تاريخ التمام</label>
+            <input type="date" class="form-control" id="report_date" name="report_date" required>
+        </div>
+        <div class="form-group" id="period_field">
+            <label for="period">الفترة</label>
+            <select class="form-control" id="period" name="period">
+                <option value="">جميع الفترات</option>
+                <option value="الفترة الصباحية">الفترة الصباحية</option>
+                <option value="الفترة المسائية">الفترة المسائية</option>
+            </select>
+        </div>
+        <div class="form-group" id="type_field">
+            <label for="type_field">النوع</label>
+            <select class="form-control" id="type_field" name="type_field">
+                <option value="">الكل</option>
+                <option value="معين">معين</option>
+                <option value="عقد">عقد</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">انشاء التقرير</button>
+    </form>
+</div>
+<script>
+    // Get today's date
+    var today = new Date();
+
+    // Format the date as YYYY-MM-DD
+    var day = ("0" + today.getDate()).slice(-2);
+    var month = ("0" + (today.getMonth() + 1)).slice(-2);
+    var todayFormatted = today.getFullYear() + '-' + month + '-' + day;
+
+    // Set the value of the date input field to today's date
+    document.getElementById('report_date').value = todayFormatted;
+</script>
+<script>
+    function togglePeriodField() {
+        const reportType = document.getElementById('report_type').value;
+        const periodField = document.getElementById('period_field');
+        if (reportType === 'ezn' || reportType === 'agaza' || reportType === 'clinic') {
+            periodField.style.display = 'none';
+        } else {
+            periodField.style.display = 'block';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', togglePeriodField);
+</script>
+{% endblock %}

@@ -1,0 +1,392 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+{% block title %}اضافة موظف{% endblock %}
+{% block admin_content %}
+
+    <h1 class="text-right mb-4">{{ title }}</h1>
+    
+
+<div class="right">
+    <div class="row" style="    justify-content: center">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} text-right" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+        <div class="col-md-9">
+
+            
+            <div class="form-section">
+                <h3 class="section-title">الصورة الشخصية</h3>
+                <div class="row" style="    justify-content: center">
+                    <div class="col-md-4 mb-3">
+                    <div class="text-center mb-4 employee-photo">
+                        <img src="{{ url_for('static', filename='uploads/' + employee_photo) if employee_photo else url_for('static', filename='images/profile.png') }}" alt="Employee Photo" class="img-fluid rounded-circle mb-3">
+
+
+        
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="" class="needs-validation employee-form" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="form-section">
+                    <h3 class="section-title">المعلومات الشخصية</h3>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control") }}
+                            {% if form.username.errors %}
+                                <div class="text-danger">{{ form.username.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control") }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">{{ form.name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.nat_id.label(class="form-label") }}
+                            {{ form.nat_id(class="form-control") }}
+                            {% if form.nat_id.errors %}
+                                <div class="text-danger">{{ form.nat_id.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.birth_date.label(class="form-label") }}
+                            {{ form.birth_date(class="form-control") }}
+                            {% if form.birth_date.errors %}
+                                <div class="text-danger">{{ form.birth_date.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.gender.label(class="form-label") }}
+                            {{ form.gender(class="form-select custom-select") }}
+                            {% if form.gender.errors %}
+                                <div class="text-danger">{{ form.gender.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.religion.label(class="form-label") }}
+                            {{ form.religion(class="form-select custom-select") }}
+                            {% if form.religion.errors %}
+                                <div class="text-danger">{{ form.religion.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.address.label(class="form-label") }}
+                            {{ form.address(class="form-control") }}
+                            {% if form.address.errors %}
+                                <div class="text-danger">{{ form.address.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            {{ form.phone_number.label(class="form-label") }}
+                            {{ form.phone_number(class="form-control") }}
+                            {% if form.phone_number.errors %}
+                                <div class="text-danger">{{ form.phone_number.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            {{ form.sec_phone_number.label(class="form-label") }}
+                            {{ form.sec_phone_number(class="form-control") }}
+                            {% if form.sec_phone_number.errors %}
+                                <div class="text-danger">{{ form.sec_phone_number.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">معلومات العمل</h3>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.office_name.label(class="form-label") }}
+                            {{ form.office_name(class="form-select custom-select") }}
+                            {% if form.office_name.errors %}
+                                <div class="text-danger">{{ form.office_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.job_type.label(class="form-label") }}
+                            {{ form.job_type(class="form-select custom-select") }}
+                            {% if form.job_type.errors %}
+                                <div class="text-danger">{{ form.job_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.emp_type.label(class="form-label") }}
+                            {{ form.emp_type(class="form-select custom-select") }}
+                            {% if form.emp_type.errors %}
+                                <div class="text-danger">{{ form.emp_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.job_name_modli.label(class="form-label") }}
+                            {{ form.job_name_modli(class="form-select custom-select") }}
+                            {% if form.job_name_modli.errors %}
+                                <div class="text-danger">{{ form.job_name_modli.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.employment_id.label(class="form-label") }}
+                            {{ form.employment_id(class="form-control") }}
+                            {% if form.employment_id.errors %}
+                                <div class="text-danger">{{ form.employment_id.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.employment_start_year.label(class="form-label") }}
+                            {{ form.employment_start_year(class="form-select custom-select") }}
+                            {% if form.employment_start_year.errors %}
+                                <div class="text-danger">{{ form.employment_start_year.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">ساعات العمل</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.job_start_time.label(class="form-label") }}
+                            {{ form.job_start_time(class="form-control") }}
+                            {% if form.job_start_time.errors %}
+                                <div class="text-danger">{{ form.job_start_time.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.job_end_time.label(class="form-label") }}
+                            {{ form.job_end_time(class="form-control") }}
+                            {% if form.job_end_time.errors %}
+                                <div class="text-danger">{{ form.job_end_time.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.period.label(class="form-label") }}
+                            {{ form.period(class="form-control") }}
+                            {% if form.period.errors %}
+                                <div class="text-danger">{{ form.period.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="working-days">
+                        <h4>أيام العمل</h4>
+                        {% for day in [form.sat, form.sun, form.mon, form.tues, form.wed, form.thr, form.fri] %}
+                            <div class="form-check">
+                                {{ day(class="form-check-input") }}
+                                {{ day.label(class="form-check-label") }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">المؤهلات والخبرات</h3>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.certificate.label(class="form-label") }}
+                            {{ form.certificate(class="form-control") }}
+                            {% if form.certificate.errors %}
+                                <div class="text-danger">{{ form.certificate.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.graduation_year.label(class="form-label") }}
+                            {{ form.graduation_year(class="form-select custom-select") }}
+                            {% if form.graduation_year.errors %}
+                                <div class="text-danger">{{ form.graduation_year.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.exp.label(class="form-label") }}
+                            {{ form.exp(class="form-control") }}
+                            {% if form.exp.errors %}
+                                <div class="text-danger">{{ form.exp.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.exp_type.label(class="form-label") }}
+                            {{ form.exp_type(class="form-select custom-select") }}
+                            {% if form.exp_type.errors %}
+                                <div class="text-danger">{{ form.exp_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.grade.label(class="form-label") }}
+                            {{ form.grade(class="form-select custom-select") }}
+                            {% if form.grade.errors %}
+                                <div class="text-danger">{{ form.grade.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.level.label(class="form-label") }}
+                            {{ form.level(class="form-select custom-select") }}
+                            {% if form.level.errors %}
+                                <div class="text-danger">{{ form.level.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">معلومات إضافية</h3>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.social.label(class="form-label") }}
+                            {{ form.social(class="form-select custom-select") }}
+                            {% if form.social.errors %}
+                                <div class="text-danger">{{ form.social.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.doc_number.label(class="form-label") }}
+                            {{ form.doc_number(class="form-control") }}
+                            {% if form.doc_number.errors %}
+                                <div class="text-danger">{{ form.doc_number.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.insurance_number.label(class="form-label") }}
+                            {{ form.insurance_number(class="form-control") }}
+                            {% if form.insurance_number.errors %}
+                                <div class="text-danger">{{ form.insurance_number.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.arda_points.label(class="form-label") }}
+                            {{ form.arda_points(class="form-control") }}
+                            {% if form.arda_points.errors %}
+                                <div class="text-danger">{{ form.arda_points.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.sanwya_points.label(class="form-label") }}
+                            {{ form.sanwya_points(class="form-control") }}
+                            {% if form.sanwya_points.errors %}
+                                <div class="text-danger">{{ form.sanwya_points.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.tar7eel_points.label(class="form-label") }}
+                            {{ form.tar7eel_points(class="form-control") }}
+                            {% if form.tar7eel_points.errors %}
+                                <div class="text-danger">{{ form.tar7eel_points.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.active.label(class="form-label") }}
+                            {{ form.active(class="form-control") }}
+                            {% if form.active.errors %}
+                                <div class="text-danger">{{ form.active.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-right mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.right{
+    direction: rtl;
+    text-align: right;
+}
+    .employee-photo img {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    .employee-photo img:hover {
+        transform: scale(1.05);
+    }
+    .employee-form {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .form-section {
+        background-color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: box-shadow 0.3s ease;
+    }
+    .form-section:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .section-title {
+        border-bottom: 2px solid #4b49ac;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        color: #4b49ac;
+    }
+    .form-label {
+        font-weight: bold;
+        color: #495057;
+    }
+    .form-control, .custom-select {
+        height: 45px;
+        border-radius: 5px;
+    }
+    .working-days {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .working-days .form-check {
+        justify-content: end;
+        margin-right: 0;
+        margin-left: 20px;
+        align-items: center;
+    }
+    .btn-primary {
+        background-color: #4b49ac;
+        border-color: #4b49ac;
+        transition: background-color 0.3s ease;
+    }
+    .btn-primary:hover {
+        background-color:#45439c;
+        border-color: #45439c;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .employee-form {
+        animation: fadeIn 0.5s ease-out;
+    }
+</style>
+{% endblock %}

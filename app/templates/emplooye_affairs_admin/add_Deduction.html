@@ -1,0 +1,100 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}اضافة العقوبات{% endblock %}
+
+{% block admin_content %}
+
+<div class="container mt-5">
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('main.add_Deduction') }}">
+
+        <div class="form-group">
+            <label for="office_name">المكتب</label>
+            <select class="form-control" id="office_name" name="office_name" required>
+                {% for office in all_offices %}
+                {% if user_type == 'manager' %}
+                    {% if office == user_office %}
+                        <option value="{{ office }}" selected="selected">{{ office }}</option>
+                    {% endif %}
+                {% else %}
+                    <option value="{{ office }}" {% if office == user_office %}selected="selected"{% endif %}>{{ office }}</option>
+                {% endif %}
+            {% endfor %}
+            
+            </select>
+        </div>
+    
+        <div class="form-group">
+            <label for="employee_name">اسم الموظف</label>
+            <select class="form-control" id="employee_name" name="employee_name" required>
+                {% for employee in employees %}
+                    <option value="{{ employee.id }}">{{ employee.name }} ({{ employee.period }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="reason" class="form-label">السبب</label>
+            <textarea class="form-control" id="reason" name="reason" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="deduction_points">ايام الخصم</label>
+            <select class="form-control" id="deduction_points" name="deduction_points" required>
+                <option value="0.25">1/4</option>
+                <option value="0.5">1/2</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+            </select>
+        </div>
+    
+        <button type="submit" class="btn btn-primary">اضافة عقوبة</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Prepopulate the employee dropdown if the office is selected
+        document.getElementById('office_name').addEventListener('change', function () {
+            var office = this.value;
+            fetch('/get_employees/' + office)
+                .then(response => response.json())
+                .then(data => {
+                    var employeeDropdown = document.getElementById('employee_name');
+                    employeeDropdown.innerHTML = '';
+                    data.forEach(employee => {
+                        var option = document.createElement('option');
+                        option.value = employee.id; // Set value to employee ID
+                        option.text = employee.name + ' (' + employee.period + ')'; // Display name and period
+                        employeeDropdown.appendChild(option);
+                    });
+                });
+        });
+    
+        // Trigger the change event to populate employees if office is preselected
+        if (document.getElementById('office_name').value) {
+            document.getElementById('office_name').dispatchEvent(new Event('change'));
+        }
+    });
+    </script>
+    
+{% endblock %}

@@ -1,0 +1,430 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تسجيل الحضور بالتعرف على الوجة{% endblock %}
+
+{% block admin_content %}
+<style>
+    .video-stream,
+    .details,
+    .logs {
+        margin-bottom: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .video-stream {
+        background-color: #fff;
+        padding: 25px;
+    }
+
+    .video-stream h2 {
+        color: #4b49ac;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .details,
+    .logs {
+        background-color: #fff;
+        padding: 25px;
+    }
+
+    .details h3,
+    .logs h3 {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        /* 16:9 aspect ratio */
+        height: 0;
+        overflow: hidden;
+    }
+
+    .video-container img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .video-container::before {
+        content: "Live Stream";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .stream {
+        width: 80%;
+        height: auto;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    #face-details img {
+        width: 100%;
+        max-width: 200px;
+        border-radius: 50%;
+        border: 3px solid #007bff;
+        margin-bottom: 15px;
+        transition: transform 0.3s ease;
+    }
+
+    #face-details img:hover {
+        transform: scale(1.1);
+    }
+
+    #face-details p {
+        font-size: 16px;
+        color: #333;
+    }
+
+    #face-details span {
+        font-weight: 700;
+    }
+
+    #log-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border-top: 1px solid #ddd;
+        padding-top: 15px;
+        animation: fadeIn 1s ease;
+    }
+
+    #log-container p {
+        margin: 0;
+        font-size: 14px;
+        color: #333;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .log-item {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+    }
+
+    .log-item:last-child {
+        border-bottom: none;
+    }
+
+    .log-item img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 15px;
+        object-fit: cover;
+    }
+
+    .log-text {
+        flex: 1;
+    }
+
+    .log-text .employee-info {
+        font-size: 1rem;
+        color: #333;
+    }
+
+    .log-text .log-time {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .details-card {
+        max-width: 250px;
+        margin: 0 auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-bottom: groove;
+    }
+
+    .details-card .text-primary {
+        color: #4b49ac !important;
+        font-weight: 700;
+        font-family: 'Cairo-Bold', sans-serif;
+        ;
+    }
+
+    .details-card img {
+        max-width: 150px;
+    }
+
+    .details-card p {
+        margin-bottom: 10px;
+    }
+    #clock2 {
+        font-family: 'Arial', sans-serif;
+        font-size: 100px; /* Large font size for visibility */
+        font-weight: bold;
+        color: #fff;
+        background-color: #7da0fa;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin: 20px auto;
+        width: fit-content;
+    }
+</style>
+<script>
+    let logs = JSON.parse(sessionStorage.getItem('logs')) || [];
+    const MAX_LOGS = 100;
+    let employeeTimings = JSON.parse(sessionStorage.getItem('employeeTimings')) || {}; // Object to track timing for each employee
+    const MIN_TIME_DIFF = 5 * 60 * 1000;  // 5 minutes in milliseconds
+    let alertTriggered = false;  // To prevent multiple alerts
+    let retryCount = 0;
+    const maxRetries = 5;
+    let source;
+    function updateClock() {
+        var now = new Date();
+        
+        // Adjust hour to subtract 1 for the time zone difference
+        var hours = (now.getHours()).toString().padStart(2, '0');
+        if (hours < 0) {
+            hours = (24 + parseInt(hours)).toString().padStart(2, '0');
+        }
+        var minutes = now.getMinutes().toString().padStart(2, '0');
+        var seconds = now.getSeconds().toString().padStart(2, '0');
+        
+        // Format the time string
+        var timeString = hours + ':' + minutes + ':' + seconds;
+        
+        // Display only the time (no date)
+        document.getElementById('clock2').innerHTML = timeString;
+    }
+    
+    setInterval(updateClock, 1000); // Update clock every second
+    updateClock(); // Initialize clock immediately
+    
+    setInterval(updateClock, 1000); // Update clock every second
+    updateClock(); // Initialize clock immediately
+    function initEventSource() {
+        const source = new EventSource("{{ url_for('main.recognized_id_feed') }}");
+
+        // Create an object to keep track of employee cards
+        const employeeCards = {};
+
+        source.onmessage = function (event) {
+            const employeeData = JSON.parse(event.data);
+            const currentTime = new Date().toISOString();
+            console.log(employeeData);
+
+            // Update timing for this employee
+            employeeTimings[employeeData.employee_id] = currentTime;
+
+            // Save employee timings in sessionStorage
+            sessionStorage.setItem('employeeTimings', JSON.stringify(employeeTimings));
+
+            // Handle employee card updates or creation
+            const employeeId = employeeData.employee_id;
+            let cardElement;
+
+            if (employeeCards[employeeId]) {
+                // Update existing card
+                cardElement = employeeCards[employeeId];
+                cardElement.querySelector('#employee_name').textContent = employeeData.name || "N/A";
+                cardElement.querySelector('#employee_id').textContent = employeeData.employee_id || "N/A";
+                cardElement.querySelector('#employee_time').textContent = `${employeeData.date_of_today || "N/A"} ${employeeData.time_now || "N/A"}`;
+
+
+                if (employeeData.img) {
+                    cardElement.querySelector('#compared-image').src = `{{ url_for('static', filename='emp_imgs/') }}${employeeData.img}`;
+                } else {
+                    cardElement.querySelector('#compared-image').src = "";
+                }
+
+                // Move updated card to the top
+                const container = document.getElementById('face-details');
+                container.insertBefore(cardElement, container.firstChild);
+            } else {
+                // Create a new card
+                cardElement = document.createElement('div');
+                cardElement.className = 'details-card p-4 bg-white rounded shadow-sm';
+                cardElement.innerHTML = `
+            <div id="compared-image-container" class="mb-3">
+
+                <img id="compared-image" src="{{ url_for('static', filename='emp_imgs/') }}${employeeData.img}" alt="الصورة التي تم التعرف عليها" class="img-fluid rounded" />
+            </div>
+            <p><strong>الاسم:</strong> <span id="employee_name" class="text-primary res">${employeeData.name || "N/A"}</span></p>
+            <p><strong>الرقم التعريفي:</strong> <span id="employee_id" class="text-primary res">${employeeData.employee_id || "N/A"}</span></p>
+            <p><strong>الوقت والتاريخ:</strong> <span id="employee_time" class="text-primary res">${employeeData.date_of_today || "N/A"} ${employeeData.time_now || "N/A"}</span></p>
+
+        `;
+
+                // Add the new card to the top of the container
+                const container = document.getElementById('face-details');
+                container.insertBefore(cardElement, container.firstChild);
+
+                // Store reference to the card
+                employeeCards[employeeId] = cardElement;
+            }
+
+            // Optional: Limit the number of cards displayed
+            const maxCards = 100; // Adjust as needed
+            const cards = Array.from(document.querySelectorAll('.details-card'));
+            if (cards.length > maxCards) {
+                // Remove the oldest card
+                const oldestCard = cards[cards.length - 1];
+                oldestCard.remove();
+                // Remove reference from employeeCards
+                const oldestEmployeeId = oldestCard.querySelector('#employee_id').textContent;
+                delete employeeCards[oldestEmployeeId];
+            }
+
+            // Add a new log entry
+            const logEntry = `
+        <div class="log-item">
+            <img src="{{ url_for('static', filename='emp_imgs/') }}${employeeData.img || 'default.png'}" alt="Employee Photo">
+            <div class="log-text">
+                <span class="log-time">${employeeData.date_of_today || "N/A"} ${employeeData.time_now || "N/A"}</span>
+                <span class="employee-info">الاسم <strong class="res">${employeeData.name || "N/A"}</strong> من <strong class="res">${employeeData.office_name || "N/A"}</strong> تم التعرف عليه.</span>
+            </div>
+        </div>
+    `;
+
+            // Prepend the log entry to the logs array
+            logs.unshift(logEntry);
+
+            // Keep only the latest MAX_LOGS logs
+            if (logs.length > MAX_LOGS) {
+                logs.pop(); // Remove the oldest log
+            }
+
+            // Save logs in sessionStorage
+            sessionStorage.setItem('logs', JSON.stringify(logs));
+
+            // Update the log container
+            const logContainer = document.getElementById("log-container");
+            logContainer.innerHTML = logs.join("");
+
+            // Scroll to the top of the log container
+            logContainer.scrollTop = 0;
+
+            // Reset alertTriggered for the next employee
+            alertTriggered = false;
+
+
+        };
+
+        source.onerror = function () {
+            console.error("EventSource error detected. Attempting to reconnect...");
+            source.close();
+
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`Retrying EventSource connection (${retryCount}/${maxRetries})...`);
+                initEventSource();
+            } else {
+                console.log("Max EventSource retry attempts reached. Please check the server connection.");
+                alert("Connection to the server lost. Please reload the page or check your network connection.");
+            }
+        };
+    }
+
+    // Initialize the EventSource for the first time
+    initEventSource();
+    // Function to handle video errors
+    function handleVideoError() {
+        console.error("Video feed error detected.");
+        retryCount++;
+
+        if (retryCount <= maxRetries) {
+            console.log(`Attempting to reload video feed (${retryCount}/${maxRetries})...`);
+            const videoFeed = document.getElementById("video-feed");
+            videoFeed.src = "{{ url_for('main.video_feed') }}?" + new Date().getTime();  // Append timestamp to force reload
+        } else {
+            console.log("Max retry attempts reached for video feed. Please check the camera connection.");
+            alert("Video feed connection lost. Please reload the page or check the camera connection.");
+        }
+    }
+    window.onload = function () {
+
+        const now = new Date();
+        const hours = now.getHours();
+        const lastVisit = sessionStorage.getItem('lastVisit');
+        const lastVisitDate = new Date(lastVisit);
+
+        if (hours >= 22 || !lastVisit || now.getDate() !== lastVisitDate.getDate()) {
+            sessionStorage.removeItem('logs'); // Clear logs for a new session
+        }
+
+        sessionStorage.setItem('lastVisit', now); // Save the current visit time
+
+        // Restore logs from sessionStorage
+        logs = JSON.parse(sessionStorage.getItem('logs')) || [];
+        const logContainer = document.getElementById("log-container");
+        logContainer.innerHTML = logs.join("");
+        logContainer.scrollTop = 0;
+    };
+
+</script>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Video Stream Section -->
+        <div class="col-md-8 mb-4">
+            <div class="video-stream p-3 bg-light rounded shadow-sm">
+                <h2 class="text-primary">بث مباشر للتعرف على الوجه</h2>
+                <div id="video-container">
+                    <img src="{{ url_for('main.video_feed') }}" class="stream" alt="Video Stream" id="video-feed" />
+                </div>
+                <div id="clock2"></div>
+            </div>
+        </div>
+
+        <!-- Employee Details Section -->
+        <div class="col-md-4 mb-4">
+            <div class="details p-3 bg-white rounded shadow-sm">
+                <h3 class="text-success text-center">تفاصيل الوجه المكتشف</h3>
+                <div id="face-details" class="text-center" style="
+                max-height: 1000px;
+                overflow-y: scroll;">
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Logs Section -->
+        <div class="col-12 mb-4">
+            <div class="logs p-3 bg-white rounded shadow-sm">
+                <h3 class="text-danger">السجلات</h3>
+                <div id="log-container" class="overflow-auto" style="max-height: 300px;">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Add an event listener for video feed errors
+    document.getElementById("video-feed").addEventListener("error", handleVideoError);
+</script>
+{% endblock %}

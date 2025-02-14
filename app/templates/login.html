@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول{% endblock %}
+
+{% block content %}
+<style>
+
+
+    .container {
+        max-width: 400px;
+        margin-top: 5%;
+        margin-left: 75%;
+    }
+    body {
+        background-image: url("{{ url_for('static', filename='background.jpg') }}");
+         background-size: cover; 
+         background-position: center; 
+         background-repeat: no-repeat;
+
+    }
+
+    .card {
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .form-group label {
+        color: #555;
+    }
+
+    .form-control {
+        border-radius: 5px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        background-color: #007bff;
+        border-color: #007bff;
+        border-radius: 5px;
+        padding: 10px;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+</style>
+
+<div class="container">
+        <!-- Flash message section -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="alert-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+<div class="card">
+    <div class="card-header">
+        <h2>تسجيل الدخول</h2>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.email.label(class="form-control-label") }}
+                {{ form.email(class="form-control") }}
+                {% for error in form.email.errors %}
+                <small class="form-text text-danger">{{ error }}</small>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.password.label(class="form-control-label") }}
+                {{ form.password(class="form-control") }}
+                {% for error in form.password.errors %}
+                <small class="form-text text-danger">{{ error }}</small>
+                {% endfor %}
+            </div>
+            <div class="form-group form-check">
+                {{ form.remember(class="form-check-input") }}
+                {{ form.remember.label(class="form-check-label") }}
+            </div>
+            <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}

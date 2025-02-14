@@ -1,0 +1,215 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+{% block title %}اضافة موظف{% endblock %}
+{% block admin_content %}
+
+<h1 class="text-right mb-4">{{ title }}</h1>
+
+
+<div class="right">
+    <div class="row" style="    justify-content: center">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="alert-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} text-right" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="col-md-9">
+            <div class="form-section">
+                <h3 class="section-title">الصورة الشخصية</h3>
+                <div class="row" style="justify-content: center;">
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center mb-4 employee-photo">
+                            <!-- Display uploaded photo or default profile image -->
+                            <img src="{% if form.photo.data %}
+                                {{ url_for('static', filename='uploads/' + form.photo.data) }}
+                            {% elif user.photo %}
+                                {{ url_for('static', filename='uploads/' + user.photo) }}
+                            {% else %}
+                                {{ url_for('static', filename='images/profile.png') }}
+                            {% endif %}" alt="User Photo" class="img-fluid rounded-circle mb-3" id="photo-preview">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+            <form method="POST" action="" class="needs-validation user-form" enctype="multipart/form-data" novalidate>
+                {{ form.hidden_tag() }}
+        
+                <div class="form-section">
+                    <h3 class="section-title">معلومات المستخدم</h3>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control") }}
+                            {% if form.username.errors %}
+                            <div class="text-danger">{{ form.username.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control") }}
+                            {% if form.email.errors %}
+                            <div class="text-danger">{{ form.email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control") }}
+                            {% if form.password.errors %}
+                            <div class="text-danger">{{ form.password.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control") }}
+                            {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.user_type.label(class="form-label") }}
+                            {{ form.user_type(class="form-select custom-select") }}
+                            {% if form.user_type.errors %}
+                            <div class="text-danger">{{ form.user_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.office.label(class="form-label") }}
+                            {{ form.office(class="form-select custom-select") }}
+                            {% if form.office.errors %}
+                            <div class="text-danger">{{ form.office.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.id.label(class="form-label") }}
+                            {{ form.id(class="form-select custom-select") }}
+                            {% if form.id.errors %}
+                            <div class="text-danger">{{ form.id.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+        
+
+        
+                <div class="text-right mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+<script>
+    // Preview uploaded image
+    document.getElementById('form-photo').onchange = function (evt) {
+        var [file] = this.files;
+        if (file) {
+            document.getElementById('photo-preview').src = URL.createObjectURL(file);
+        }
+    };
+</script>
+<style>
+    .right {
+        direction: rtl;
+        text-align: right;
+    }
+
+    .employee-photo img {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .employee-photo img:hover {
+        transform: scale(1.05);
+    }
+
+    .employee-form {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-section {
+        background-color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .form-section:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+        border-bottom: 2px solid #4b49ac;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        color: #4b49ac;
+    }
+
+    .form-label {
+        font-weight: bold;
+        color: #495057;
+    }
+
+    .form-control,
+    .custom-select {
+        height: 45px;
+        border-radius: 5px;
+    }
+
+    .working-days {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .working-days .form-check {
+        justify-content: end;
+        margin-right: 0;
+        margin-left: 20px;
+        align-items: center;
+    }
+
+    .btn-primary {
+        background-color: #4b49ac;
+        border-color: #4b49ac;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #45439c;
+        border-color: #45439c;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .employee-form {
+        animation: fadeIn 0.5s ease-out;
+    }
+</style>
+{% endblock %}

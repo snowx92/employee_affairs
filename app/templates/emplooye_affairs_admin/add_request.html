@@ -1,0 +1,200 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}انشاء طلب{% endblock %}
+
+{% block admin_content %}
+
+<div class="jumbotron">
+    <div class="container">
+        <h1 class="display-4">
+            <span class="username">انشاء طلبات</span>
+        </h1>
+        <p class="lead">
+               ，إنشاء طلبات للموظفيين عيادات, مأموريات , اجازت , اذونات , التماس
+        </p>
+        <hr class="my-4 ">
+    </div>
+</div>
+
+<div class="container mt-5">
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Report Type Selector -->
+    <div class="form-group">
+        <label for="report_type">نوع الطلب</label>
+        <select class="form-control" id="report_type" name="report_type" required>
+            <option value="">اختر نوع الطلب</option>
+            <option value="clinic">عياده</option>
+            <option value="ezn">اذن</option>
+            <option value="agaza">اجازة</option>
+            <option value="altmas">التماس</option>
+            <option value="momrya">مأمورية</option>
+        </select>
+    </div>
+
+    <!-- Dynamic Form Container -->
+    <div id="dynamic-form-container">
+        <!-- Form content will be loaded here dynamically -->
+    </div>
+</div>
+
+
+<script>
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        const reportTypeSelect = document.getElementById('report_type');
+        const formContainer = document.getElementById('dynamic-form-container');
+    
+        reportTypeSelect.addEventListener('change', function () {
+            
+            const reportType = this.value;
+            if (reportType) {
+                fetch(`/load_form/${reportType}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        formContainer.innerHTML = data;
+    
+                        // After the form is loaded, set up event listeners
+                        setUpEventListeners(reportType);
+                            // First, let's verify what IDs are actually being used
+    const allSelects = document.querySelectorAll('select');
+    console.log('All select elements:', allSelects);
+
+    // Get the select elements using the correct selectors
+    const agazaTypeSelect = document.querySelector('select[name="agaza_type"]');
+    const impactTypeDiv = document.querySelector('#impact_type_div');
+
+    // Debug log to verify elements are found
+    console.log('Agaza Type Select:', agazaTypeSelect);
+    console.log('Impact Type Div:', impactTypeDiv);
+
+    function toggleImpactType() {
+        if (!agazaTypeSelect || !impactTypeDiv) {
+            console.log('Required elements not found');
+            return;
+        }
+
+        // Get the selected value
+        const selectedValue = agazaTypeSelect.value;
+        console.log('Selected value:', selectedValue);
+
+        // Check if the selected value matches either condition
+        if (selectedValue === 'أعتيادية' || selectedValue === 'عارضة') {
+            console.log('Showing impact type');
+            impactTypeDiv.style.display = 'block';
+        } else {
+            console.log('Hiding impact type');
+            impactTypeDiv.style.display = 'none';
+        }
+    }
+
+    // Add change event listener if elements exist
+    if (agazaTypeSelect && impactTypeDiv) {
+        console.log('Adding event listener');
+        agazaTypeSelect.addEventListener('change', function(event) {
+            console.log('Change event triggered');
+            toggleImpactType();
+        });
+
+        // Run once on page load to handle initial state
+        toggleImpactType();
+    } else {
+        console.log('Could not add event listener - elements not found');
+    }
+                    })
+                    .catch(error => console.error('Error loading form:', error));
+            } else {
+                formContainer.innerHTML = ''; // Clear the form if no report type is selected
+            }
+        });
+    
+        function setUpEventListeners(reportType) {
+            console.log(reportType);
+            const reportTypeHidden = document.getElementById('report_type_hidden');
+            reportTypeHidden.value = reportType;
+    
+            const officeSelect = document.getElementById('office_name');
+            
+            // Check if officeSelect is defined
+            if (officeSelect) {
+                // Trigger change event on page load to populate dropdowns with default values
+                officeSelect.addEventListener('change', function () {
+                    const office = this.value;
+                    fetch(`/get_employees/${office}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (reportType === 'agaza') {
+                                const alternativeDropdown = document.getElementById('alternative');
+                                const employeeDropdown = document.getElementById('employee_name');
+                                if (alternativeDropdown) {
+                                    alternativeDropdown.innerHTML = ''; // Clear current options
+    
+                                    // Add default option
+                                    const defaultOption = document.createElement('option');
+                                    defaultOption.value = "9980"; // Empty value for default option
+                                    defaultOption.text = 'لا يوجد بديل'; // Default option text
+                                    defaultOption.selected = true; // Set this option as selected
+                                    alternativeDropdown.appendChild(defaultOption);
+    
+                                    // Add employee options
+                                    data.forEach(employee => {
+                                        const option = document.createElement('option');
+                                        option.value = employee.id; // Set value to employee ID
+                                        option.text = employee.name + ' (' + employee.period + ')'; // Display name and period
+                                        alternativeDropdown.appendChild(option);
+                                    });
+
+                                }
+                                // Populate employeeDropdown
+                                if (employeeDropdown) {
+                                    employeeDropdown.innerHTML = ''; // Clear current options
+    
+                                    data.forEach(employee => {
+                                        const option = document.createElement('option');
+                                        option.value = employee.id; // Set value to employee ID
+                                        option.text = employee.name + ' (' + employee.period + ')'; // Display name and period
+                                        employeeDropdown.appendChild(option);
+                                    });
+                                }
+                            } else {
+                                const employeeDropdown = document.getElementById('employee_name');
+                                if (employeeDropdown) {
+                                    employeeDropdown.innerHTML = ''; // Clear current options
+    
+                                    data.forEach(employee => {
+                                        const option = document.createElement('option');
+                                        option.value = employee.id; // Set value to employee ID
+                                        option.text = employee.name + ' (' + employee.period + ')'; // Display name and period
+                                        employeeDropdown.appendChild(option);
+                                    });
+                                }
+                            }
+                        })
+                        .catch(error => console.error('Error fetching employees:', error));
+                });
+    
+                // Manually trigger the change event on page load
+                const office = officeSelect.value;
+                if (office) {
+                    officeSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        }
+    });
+
+
+</script>
+
+{% endblock %}

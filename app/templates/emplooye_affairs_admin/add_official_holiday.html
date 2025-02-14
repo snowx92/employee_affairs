@@ -1,0 +1,69 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+{% block title %}اضافة اجازة رسمية{% endblock %}
+{% block admin_content %}
+<div class="jumbotron">
+    <div class="container">
+  
+        <h1 class="display-4">
+             <span class="username">اضافة اجازة رسمية</span>
+        </h1>
+
+        <hr class="my-4 ">
+
+    </div>
+  </div>
+<div class="container mt-5">
+    
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control") }}
+            {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors[0] }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.from_date.label(class="form-label") }}
+            {{ form.from_date(class="form-control") }}
+            {% if form.from_date.errors %}
+                <div class="text-danger">{{ form.from_date.errors[0] }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.to_date.label(class="form-label") }}
+            {{ form.to_date(class="form-control") }}
+            {% if form.to_date.errors %}
+                <div class="text-danger">{{ form.to_date.errors[0] }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.type.label(class="form-label") }}
+            {{ form.type(class="form-select") }}
+            {% if form.type.errors %}
+                <div class="text-danger">{{ form.type.errors[0] }}</div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">اضافة</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الحضور اليومي</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 700;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+            font-weight: 900 !important;
+        }
+
+        .office-title {
+            background-color: #47494b;
+            border-bottom: 2px solid #919497;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            text-align: center;
+            color: #d7dfe2;
+        }
+        .date-highlight {
+            color: black;
+        }
+        .table-bordered td {
+            border: 2px solid #000000 !important;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+            font-weight: 900;
+            font-size: 14px;
+        }
+        @media print {
+            body {
+                font-size: 12px;
+            }
+            .container {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+                margin: 0;
+            }
+            .table td, .table th {
+                padding: 0.3rem;
+            }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <p class="h5">يوم: <span >{{ report_date }}</span></p>
+
+            <h1 class="h2">يومية تمام العاملين المدنين </h1>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Company Logo" class="logo">
+        </header>
+
+        {% set offices = attendance_report | groupby('Office') %}
+        {% set priority_offices = ['اجازة بدون مرتب', 'انتداب خارج وزارة الدفاع'] %}
+        {% set employee_count = namespace(value=0) %}
+        
+        {# Show priority offices first #}
+        {% for office, employees in offices if office in priority_offices %}
+            <section class="mb-5">
+                <h2 class="office-title">{{ office }}</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الرقم</th>
+                                <th>اسم الموظف</th>
+                                <th>الفترة</th>
+                                <th>الحالة</th>
+                                <th>من تاريخ</th>
+                                <th>إلى تاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employee in employees %}
+                                {% set employee_count.value = employee_count.value + 1 %}
+                                <tr>
+                                    <td>{{ employee_count.value }}</td>
+                                    <td>{{ employee['Employee Name'] }}</td>
+                                    <td>{{ employee['Period'] }}</td>
+                                    <td>
+                                        {% if employee['Leave Type'] %}
+                                            {{ employee['Leave Type'] }}
+                                        {% elif employee['Has Rest'] %}
+                                            راحة
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="date-highlight">{{ employee['From Date'] or '-' }}</td>
+                                    <td class="date-highlight">{{ employee['To Date'] or '-' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        
+            {% if loop.index % 2 == 0 %}
+                <div class="page-break"></div>
+            {% endif %}
+        {% endfor %}
+        
+        {# Now show the rest of the offices #}
+        {% for office, employees in offices if office not in priority_offices %}
+            <section class="mb-5">
+                <h2 class="office-title">{{ office }}</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الرقم</th>
+                                <th>اسم الموظف</th>
+                                <th>الفترة</th>
+                                <th>الحالة</th>
+                                <th>من تاريخ</th>
+                                <th>إلى تاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employee in employees %}
+                                {% set employee_count.value = employee_count.value + 1 %}
+                                <tr>
+                                    <td>{{ employee_count.value }}</td>
+                                    <td>{{ employee['Employee Name'] }}</td>
+                                    <td>{{ employee['Period'] }}</td>
+                                    <td>
+                                        {% if employee['Leave Type'] %}
+                                            {{ employee['Leave Type'] }}
+                                        {% elif employee['Has Rest'] %}
+                                            راحة
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="date-highlight">{{ employee['From Date'] or '-' }}</td>
+                                    <td class="date-highlight">{{ employee['To Date'] or '-' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        
+            {% if loop.index % 2 == 0 %}
+                <div class="page-break"></div>
+            {% endif %}
+        {% endfor %}
+        <section class="summary-section mt-5">
+            
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <h2 class="mb-4" style="text-align: center;">ملخص التقرير</h2>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>القوة</th>
+                            <th>موجود</th>
+                            <th>خوارج</th>
+                            <th>نسبة الخوارج</th>
+                        </tr>
+                        <tr>
+                            <td>{{ summary_report['Total Employees'] }}</td>
+                            <td>{{ summary_report['Employees without Agaza or Rest'] }}</td>
+                            <td>{{ summary_report['Total Employees'] - summary_report['Employees without Agaza or Rest'] }}</td>
+                            <td>{{  summary_report['Percentage with Agaza or Rest'] }}%</td>
+
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-12">
+                    <h3 style="text-align: center;">تفاصيل الإجازات والراحات</h3>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>عدد الراحات</th>
+                            {% for agaza_type in summary_report['Agaza Type Counts'].keys() %}
+                                <th>{{ agaza_type }}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>{{ summary_report['Rest Count'] }}</td>
+                            {% for count in summary_report['Agaza Type Counts'].values() %}
+                                <td>{{ count }}</td>
+                            {% endfor %}
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

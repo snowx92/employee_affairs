@@ -1,0 +1,126 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تقرير المؤثرات{% endblock %}
+
+{% block admin_content %}
+
+<div class="jumbotron">
+    <div class="container">
+  
+        <h1 class="display-4">
+             <span class="username">تقرير المؤثرات</span>
+        </h1>
+        <p class="lead">
+            إنشاء تقرير المؤثرات بناءً على معايير مختارة
+        </p>
+        <hr class="my-4 ">
+
+    </div>
+  </div>
+<div class="container mt-5">
+
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('main.mo2srat') }}">
+        {% if user_type != 'employee' %}  
+        <div class="form-group">
+            <label for="office_name">المكتب</label>
+            <select class="form-control" id="office_name" name="office_name" >
+                <option value="" >كل المكاتب</option>
+                {% for office in all_offices %}
+                    <option value="{{ office }}" {% if office == user_office %}selected="selected"{% endif %}>{{ office }}</option>
+            {% endfor %}
+            
+            </select>
+        </div>
+    
+        <div class="form-group">
+            <label for="employee_name">اسم الموظف</label>
+            <select class="form-control" id="employee_name" name="employee_name" >
+                <option value="" >كل الموظفين</option>
+                {% for employee in employees %}
+                    <option value="{{ employee.id }}">{{ employee.name }} ({{ employee.period }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+
+        <div class="form-group">
+            <label for="date_from">من</label>
+            <input type="date" class="form-control" id="date_from" name="date_from" required>
+        </div>
+    
+        <div class="form-group">
+            <label for="date_to">الي</label>
+            <input type="date" class="form-control" id="date_to" name="date_to" required>
+        </div>
+        <div class="form-group">
+            <label for="emp_type">نوع الموظف</label>
+            <select class="form-control" id="emp_type" name="emp_type" >
+                <option value="">الكل</option>
+                <option value="عقد">عقد</option>
+                <option value="معين">معين</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="report_type">نوع التقرير</label>
+            <select class="form-control" id="report_type" name="report_type" required>
+                <option value="count">مؤثرات</option>
+                <option value="details">مؤثرات تفصيلية</option>
+            </select>
+        </div>
+    
+        <button type="submit" class="btn btn-primary">انشاء التقرير</button>
+    </form>
+</div>
+<script>
+    
+    // Get today's date
+    var today = new Date();
+
+    // Format the date as YYYY-MM-DD
+    var day = ("0" + today.getDate()).slice(-2);
+    var month = ("0" + (today.getMonth() + 1)).slice(-2);
+    var todayFormatted = today.getFullYear() + '-' + month + '-' + day;
+
+    // Set the value of the date input field to today's date
+    document.getElementById('date_to').value = todayFormatted;
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Prepopulate the employee dropdown if the office is selected
+        document.getElementById('office_name').addEventListener('change', function () {
+            var office = this.value;
+            fetch('/get_employees/' + office)
+                .then(response => response.json())
+                .then(data => {
+                    var employeeDropdown = document.getElementById('employee_name');
+                    employeeDropdown.innerHTML = '<option value="">كل موظفين المكتب</option>';
+                    data.forEach(employee => {
+                        var option = document.createElement('option');
+                        option.value = employee.id; // Set value to employee ID
+                        option.text = employee.name + ' (' + employee.period + ')'; // Display name and period
+                        employeeDropdown.appendChild(option);
+                    });
+                });
+        });
+    
+        // Trigger the change event to populate employees if office is preselected
+        if (document.getElementById('office_name').value) {
+            document.getElementById('office_name').dispatchEvent(new Event('change'));
+        }
+    });
+    </script>
+    
+{% endblock %}

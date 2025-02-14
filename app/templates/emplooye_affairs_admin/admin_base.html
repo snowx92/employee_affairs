@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    hr {
+        border: none;
+        height: 10px;
+        border-color: #7da0fa;
+        background: #7da0fa;
+    }
+
+    #sidebar ul ul {
+        padding-left: 10px;
+        transition: max-height 0.3s ease-in-out;
+        max-height: 0;
+        overflow: hidden;
+    }
+
+    #sidebar ul ul.show {
+        max-height: 500px; /* Adjust according to content */
+    }
+
+    #sidebar ul ul li {
+        margin-left: 15px;
+    }
+
+    .nav-item > a.dropdown-toggle::after {
+        content: "\f078"; /* FontAwesome down arrow */
+        font-family: "FontAwesome";
+        float: right;
+        transition: transform 0.3s ease;
+    }
+
+    .nav-item > a.dropdown-toggle[aria-expanded="true"]::after {
+        transform: rotate(-180deg);
+    }
+    .nav-item > a.dropdown-toggle .fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.nav-item > a.dropdown-toggle[aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(-180deg);
+}    
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="sidebar-sticky pt-3">
+                <div class="text-center mb-4">
+                    <img src="{{ url_for('static', filename='uploads/' ~ (current_user.photo if current_user.photo else 'profile.png')) }}" alt="Profile Photo" class="rounded-circle" height="100" style="object-fit: contain; width: 100px;">
+                    <h5 class="mt-2 username" style="font-size: 1.5rem;">{{ current_user.name }}</h5>
+                </div>
+                <h5 class="mt-2 username" style="color: #f3797e; text-align: center;">مكتب {{ current_user.office }} </h5>
+                <hr class="my-4">
+                <ul class="nav flex-column">
+
+                    {% if user_type == 'manager' %}
+
+                    <li class="nav-item"></li>
+                        <a class="nav-link {% if request.endpoint == 'main.admin_dashboard' %}active{% endif %}" href="{{ url_for('main.admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> لوحة القيادة
+                        </a>
+                    </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
+                                <i class="fa-solid fa-check-circle"></i>
+                                التصديقات والمتابعات
+                            </a>
+                        </li>
+
+
+                        <a class="nav-link {% if request.endpoint == 'main.admin_reports' %}active{% endif %}" href="{{ url_for('main.admin_reports') }}">
+                            <i class="fa-regular fa-newspaper"></i> التقرير اليومية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_report' %}active{% endif %}" href="{{ url_for('main.employee_report') }}">
+                            <i class="fa-regular fa-newspaper"></i> تقارير الموظفين
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_rates' %}active{% endif %}" href="{{ url_for('main.employee_rates') }}">
+                            <i class="fa-solid fa-face-smile"></i> تقيمات الموظفين
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
+                            <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
+                            <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
+                            <i class="fas fa-cogs"></i> الاعدادات
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if user_type == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_dashboard' %}active{% endif %}" href="{{ url_for('main.admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> لوحة القيادة
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_users' %}active{% endif %}" href="{{ url_for('main.admin_users') }}">
+                            <i class="fas fa-users"></i> الموظفين
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_affairs' %}active{% endif %}" href="#employeeAffairsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                            <i class="fa-solid fa-users-gear"></i> شئون عاملين
+                            <i class="fas fa-chevron-down float-right"></i>
+                        </a>
+                        <ul class="collapse list-unstyled" id="employeeAffairsSubmenu">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'main.add_request' %}active{% endif %}" href="{{ url_for('main.add_request') }}">
+                                    <i class="fa-solid fa-file-alt"></i>
+                                    الطلبات
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    التصديقات والمتابعات
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_affairs' %}active{% endif %}" href="#report" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                            <i class="fa-regular fa-folder-open"></i> التقارير
+                            <i class="fas fa-chevron-down float-right"></i>
+                        </a>
+                    <ul class="collapse list-unstyled" id="report">   
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_reports' %}active{% endif %}" href="{{ url_for('main.admin_reports') }}">
+                            <i class="fa-regular fa-newspaper"></i> التقارير اليومية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_report' %}active{% endif %}" href="{{ url_for('main.employee_report') }}">
+                            <i class="fa-solid fa-users"></i> تقارير الموظفين
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.mo2srat' %}active{% endif %}" href="{{ url_for('main.mo2srat') }}">
+                            <i class="fa-solid fa-circle-minus"></i> المؤثرات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.tmam' %}active{% endif %}" href="{{ url_for('main.tmam') }}">
+                            <i class="fa-solid fa-users-rays"></i> التمام اليومي
+                        </a>
+                    </li>
+                  </ul>
+                </li>
+                {% if user_office == 'المدير'  or user_office == 'متابعة المدير' or user_office == 'تشغيل الحواسب' %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.attendnce_sign' %}active{% endif %}" href="{{ url_for('main.attendnce_sign') }}">
+                        <i class="fa-solid fa-camera"></i> تسجيلات الحضور
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.users' %}active{% endif %}" href="{{ url_for('main.users') }}">
+                        <i class="fa-solid fa-users-rectangle"></i> الحسابات
+                    </a>
+                </li>
+                {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.Deduction' %}active{% endif %}" href="{{ url_for('main.Deduction') }}">
+                            <i class="fa-solid fa-circle-minus"></i> جزائات الموظفين
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_rates' %}active{% endif %}" href="{{ url_for('main.employee_rates') }}">
+                            <i class="fa-solid fa-face-smile"></i> تقيمات الموظفين
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
+                            <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
+                            <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
+                            <i class="fas fa-cogs"></i> الاعدادات
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_type == 'employee' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_dashboard' %}active{% endif %}" href="{{ url_for('main.admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> القائمة الرئيسية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_report' %}active{% endif %}" href="{{ url_for('main.employee_report') }}">
+                            <i class="fa-regular fa-newspaper"></i> تقارير الموظف
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.employee_affairs' %}active{% endif %}" href="#employeeAffairsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                            <i class="fa-solid fa-users-gear"></i> شئون عاملين
+                            <i class="fas fa-chevron-down float-right"></i>
+                        </a>
+                        <ul class="collapse list-unstyled" id="employeeAffairsSubmenu">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'main.add_request' %}active{% endif %}" href="{{ url_for('main.add_request') }}">
+                                    <i class="fa-solid fa-file-alt"></i>
+                                    الطلبات
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    التصديقات والمتابعات
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
+                            <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
+                            <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
+                            <i class="fas fa-cogs"></i> الاعدادات
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_type == 'attendence' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
+                            <i class="fa-solid fa-check-circle"></i>
+                            التصديقات والمتابعات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.face_recognition' %}active{% endif %}" href="{{ url_for('main.face_recognition') }}">
+                            <i class="fa-solid fa-video"></i> تسجيل الحضور
+                        </a>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </div>
+        </nav>
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4 fixed main">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var dropdowns = document.querySelectorAll('.dropdown-toggle');
+        dropdowns.forEach(function(dropdown) {
+            dropdown.addEventListener('click', function() {
+                var submenu = dropdown.nextElementSibling;
+                if (submenu.classList.contains('show')) {
+                    submenu.classList.add('active')
+                    submenu.classList.remove('show');
+                } else {
+                    submenu.classList.add('show');
+                }
+            });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Retrieve the current URL and the URLs to match
+        var currentUrl = window.location.href;
+        var addRequestUrl = "{{ url_for('main.add_request') }}";
+        var requestsViewsUrl = "{{ url_for('main.requests_veiws') }}";
+        var employeeReportUrl = "{{ url_for('main.employee_report') }}"
+        var adminReportUrl = "{{ url_for('main.admin_reports') }}"
+        var tmamUrl = "{{ url_for('main.tmam') }}"
+        var mo2sratUrl ="{{ url_for('main.mo2srat') }}"
+        // Check if the current URL matches any of the specified URLs
+        if (currentUrl.indexOf(addRequestUrl) !== -1 || currentUrl.indexOf(requestsViewsUrl) !== -1) {
+            // Show the collapse menu if the condition is met
+            $('#employeeAffairsSubmenu').collapse('show');
+        }
+
+        if (currentUrl.indexOf(employeeReportUrl) !== -1 || currentUrl.indexOf(adminReportUrl) !== -1 || currentUrl.indexOf(tmamUrl) !== -1 || currentUrl.indexOf(mo2sratUrl) !== -1) {
+            // Show the collapse menu if the condition is met
+            $('#report').collapse('show');
+        }
+    });
+</script>
+{% endblock %}

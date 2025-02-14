@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+
+<head>
+  <title>Report</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+
+  <style>
+    /* Define the custom font */
+    @font-face {
+      font-family: 'Cairo-Regular';
+      src: url('Cairo-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Cairo-Bold';
+      src: url('Cairo-Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-style: normal;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm 10mm 10mm 15mm;
+      /* Adjusted margins */
+    }
+
+    body {
+      font-family: 'Cairo-Bold', sans-serif !important;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 185mm;
+      padding-left: 20mm;
+      margin: auto;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: 'Times New Roman', Times, serif;
+      text-align: right;
+      margin-right: 15px;
+      font-size: 12px;
+    }.underline{
+      text-decoration: underline;
+      text-decoration-color: #000; /* Adjust color */
+      text-decoration-thickness: 2px; /* Adjust thickness */
+  }
+
+    .hr-style {
+      height: 2px;
+      border-width: 0;
+      color: gray;
+      background-color: black;
+      margin: 10px 0;
+    }
+
+    .row-content {
+      margin-bottom: 10px;
+    }
+
+    .footer {
+      margin-top: 20px;
+      border-top: 1px solid black;
+      padding-top: 10px;
+      text-align: right;
+    }
+
+    .footer h3,
+    .footer p {
+      margin: 0;
+    }
+
+    @media print {
+      .no-print {
+        display: none;
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+
+    th,
+    td {
+
+      text-align: right;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12px;
+
+      border: 1px solid #ddd;
+    }
+
+    th {
+      width: 10px !important;
+      padding: 0px !important;
+    }
+
+    .signature-section {
+      margin-top: 10px;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .signature-title {
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .signature-placeholder {
+      display: inline-block;
+      width: 260px;
+      height: 50px;
+
+      margin-top: 5px;
+    }
+
+    .signature-image img {
+      max-width: 120px;
+      height: auto;
+    }
+
+    .signature-container {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .signature-container .signature-section {
+      flex: 1;
+      text-align: center;
+    }
+
+    .signature {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 16px;
+      margin-left: 5%;
+      margin-bottom: 10px;
+    }
+
+    .font_smal h3 {
+      font-size: 14px !important;
+      font-weight: bold !important;
+      font-family: 'Cairo-Bold', sans-serif !important;
+    }
+
+    .table thead th {
+      vertical-align: bottom;
+      border-bottom: 5px solid #000 !important;
+    }
+
+    .sig_img {
+      max-width: 100px;
+      height: auto;
+    }
+
+
+    .table-bordered td,
+    .table-bordered th {
+      text-align: center;
+      border: 2px solid #000 !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="font_smal">
+      <div style="display: flex;
+height: 80px;
+padding-bottom: 32px;
+justify-content: space-between;">
+        <div>
+          <div class="row row-header">
+            <div class="col">
+              <h3 style="font-size: 10px !important; font-weight: bold !important;">هيئة تدريب القوات المسلحة</h3>
+            </div>
+
+            <div class="col">
+              <h3 style="font-size: 10px !important; font-weight: bold !important;">تاريخ العيادة : {{data.clinic_date}}
+              </h3>
+            </div>
+          </div>
+
+          <div class="row row-header">
+            <div class="col">
+              <h3 style="font-size: 10px !important; font-weight: bold !important;">معهد اللغات للقوات المسلحة</h3>
+            </div>
+          </div>
+        </div>
+
+        
+        <img style="width: 80px;" 
+        src="{{ url_for('static', filename='images/logo.png', _external=True) }}" 
+        alt="My Image"
+        loading="eager">
+      </div>
+      <div class="">
+        <div class="row row-header" style="
+        margin-right: 80px;
+    ">
+          <div class="col">
+            <h2 style="
+            text-align: center; padding-left: 20%; font-size: 22px; font-weight: bold;
+        "><u>نموذج عيادة محرر من معهد اللغات للقوات المسلحة</u></h2>
+          </div>
+        </div>
+
+        <div class="row row-header" style="
+        margin-right: 80px;
+    ">
+          <div class="col">
+            <h2 style="
+         text-align: center; padding-left: 20%; font-size: 22px; font-weight: bold;
+        "> <u>عن يوم الموافق {{data.clinic_date}}</u></h2>
+          </div>
+        </div>
+
+
+        <div class="row row-header">
+          <div class="col">
+            <h2><u>يرجى التكرم بإجراء الكشف الطبي للمذكور بعد</u></h2>
+          </div>
+        </div>
+      </div>
+      <table class="table table-bordered row-content">
+        <thead>
+          <tr>
+            <th style="background-color: gray;">م</th>
+            <th style="background-color: gray;">الوظيفة</th>
+            <th style="background-color: gray;">الأسم</th>
+            <th style="background-color: gray;">توصية طبيب</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align: center;">١</td>
+            <td style="text-align: center;">{{data.job_name_modli}}</td>
+            <td style="text-align: center;">{{data.employee_name}}</td>
+            <td style="text-align: center; width: 50%;"> </td>
+          </tr>
+        </tbody>
+      </table>
+
+
+
+      <div class="row row-header">
+        <div class="col">
+          <h2><u>إتباع تعليمات المعهد</u></h2>
+          <h2>- عودة من العيادة قبل سعت ١٣٠٠</h2>
+          <h2>- رئيس الفرع: {{data.manger_name}}</h2>
+        </div>
+      </div>
+
+
+
+
+
+
+      <div class="signature-section">
+        <div class="signature">
+
+
+          <h2 alt="Signature 2"></h2>
+          <div class="signature-placeholder">
+            <div style="display: flex; justify-content: space-between;">(
+              <h2 alt="Signature 2"></h2>
+              )
+            </div>
+          </div>
+        </div>
+        <div class="signature" style="flex-direction: inherit;">
+          <h3 style="margin: 0 !important;">عميـــــد / محمــــد ابراهـــــيم محمــــد ابراهـــــيم</h3>
+          <h3 style="margin: 0 !important;">نائــب مديــر معهــد اللغــات للقــوات المسلحــة</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hr-style"></div>
+
+  <div class="container">
+    <div class="font_smal">
+      <div style="display: flex;
+height: 80px;
+padding-bottom: 32px;
+justify-content: space-between;">
+        <div>
+          <div class="row row-header">
+            <div class="col">
+              <h3 style="font-size: 10px !important; font-weight: bold !important;">هيئة تدريب القوات المسلحة</h3>
+            </div>
+
+            <div class="col">
+              <h3 style="font-size: 10px !important; font-weight: bold !important;">تاريخ العيادة : {{data.clinic_date}}
+              </h3>
+            </div>
+          </div>
+
+          <div class="row row-header">
+            <div class="col">
+              <h3 style="font-size: 10px !important; font-weight: bold !important;">معهد اللغات للقوات المسلحة</h3>
+            </div>
+          </div>
+        </div>
+        <img style="width: 80px;" 
+        src="{{ url_for('static', filename='images/logo.png', _external=True) }}" 
+        alt="My Image"
+        loading="eager">
+      </div>
+      <div class="">
+        <div class="row row-header" style="
+        margin-right: 80px;
+    ">
+          <div class="col">
+            <h2 style="
+            text-align: center; padding-left: 20%; font-size: 22px; font-weight: bold;
+        "><u>نموذج عيادة محرر من معهد اللغات للقوات المسلحة</u></h2>
+          </div>
+        </div>
+
+        <div class="row row-header" style="
+        margin-right: 80px;
+    ">
+          <div class="col">
+            <h2 style="
+         text-align: center; padding-left: 20%; font-size: 22px; font-weight: bold;
+        "> <u>عن يوم الموافق {{data.clinic_date}}</u></h2>
+          </div>
+        </div>
+
+
+        <div class="row row-header">
+          <div class="col">
+            <h2><u>يرجى التكرم بإجراء الكشف الطبي للمذكور بعد</u></h2>
+          </div>
+        </div>
+      </div>
+      <table class="table table-bordered row-content">
+        <thead>
+          <tr>
+            <th style="background-color: gray;">م</th>
+            <th style="background-color: gray;">الوظيفة</th>
+            <th style="background-color: gray;">الأسم</th>
+            <th style="background-color: gray;">توصية طبيب</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align: center;">١</td>
+            <td style="text-align: center;">{{data.job_name_modli}}</td>
+            <td style="text-align: center;">{{data.employee_name}}</td>
+            <td style="text-align: center; width: 50%;"> </td>
+          </tr>
+        </tbody>
+      </table>
+
+
+
+      <div class="row row-header">
+        <div class="col">
+          <h2><u>إتباع تعليمات المعهد</u></h2>
+          <h2>- عودة من العيادة قبل سعت ١٣٠٠</h2>
+          <h2>- رئيس الفرع: {{data.manger_name}}</h2>
+        </div>
+      </div>
+
+
+
+
+
+
+      <div class="signature-section">
+        <div class="signature">
+
+          <h2 alt="Signature 2"></h2>
+          <div class="signature-placeholder">
+            <div style="display: flex; justify-content: space-between;">(
+              <h2 alt="Signature 2"></h2>
+              )
+            </div>
+          </div>
+        </div>
+        <div class="signature" style="flex-direction: inherit;">
+          <h3 style="margin: 0 !important;">عميـــــد / محمــــد ابراهـــــيم محمــــد ابراهـــــيم</h3>
+          <h3 style="margin: 0 !important;">نائــب مديــر معهــد اللغــات للقــوات المسلحــة</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

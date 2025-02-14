@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير المؤثرات</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 900 !important;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        .report-title, .office-title, .employee-title {
+            background-color: #47494b;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            text-align: center;
+            color: #e6eaee;
+            font-weight: 900 !important
+        }
+        .employee-title {
+            background-color: #d0d4d8;
+            color: #000000;
+        }
+        .date-highlight {
+            color: #000000;
+        }
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .summary-table {
+            white-space: nowrap;
+        }
+        .summary-table th, .summary-table td {
+            padding: 0.3rem;
+        }
+        .employee-section {
+            border: 4px solid #000000;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        @media print {
+            body {
+                font-size: 12px;
+            }
+            .container {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+                margin: 0;
+            }
+            .table td, .table th {
+                padding: 0.3rem;
+            }
+            
+        }
+        .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+            font-weight: 900 !important;
+        }
+
+        .office-title {
+            background-color: #47494b;
+            border-bottom: 2px solid #919497;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            text-align: center;
+            color: #f2f7f8;
+        }
+        .date-highlight {
+            color: black;   
+        }
+        .table-bordered td {
+            border: 2px solid #000000 !important;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+            font-weight: 900;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    {% set translations = {
+        'Employee Name': 'اسم الموظف',
+        'Office': 'المكتب',
+        'Time': 'الوقت',
+        'Delay Time': 'وقت التأخير',
+        'Leave Early Time': 'وقت المغادرة المبكر',
+        'date': 'التاريخ',
+        'clinic_type': 'نوع العيادة',
+        'back_time': 'وقت العودة',
+        'agaza_ded': 'اجازة عن نفس اليوم',
+        'deducat':'الحالة',
+        'result': 'النتيجة',
+        'From Time': 'من الوقت',
+        'From Date': 'من تاريخ',
+        'To Date': 'إلى تاريخ',
+        'To Time': 'إلى الوقت',
+        'Out Time': 'وقت الخروج',
+        'Back Time': 'وقت العوده',
+        'atydya_points': 'نقاط اعتيادية',
+        'arda_points': 'نقاط عارضة',
+        'atydya_all': 'الكل الاعتيادية',
+        'arda_all': 'الكل العارضة',
+        'old_points': 'النقاط القديمة',
+        'from_date': 'من التاريخ',
+        'to_date': 'إلى التاريخ',
+        'submit_date': 'تاريخ التقديم',
+        'agza_type': 'نوع الاجازة',
+        'Alternative': 'البديل',
+        'Approval Status': 'حالة الموافقة',
+        'Submit Date': 'تاريخ الطلب',
+        'Type': 'نوع',
+        'clone': 'البديل',
+        'name': 'الاسم',
+        'office_name': 'المكتب',
+        'Message': 'الحالة',
+        'Petition': 'الالتماس',
+        'Diagnosis': 'تشخيص العيادة',
+        'Clinic Type': 'نوع العيادة',
+        'Date': 'تاريخ العيادة',
+        'Rest Day': 'الراحة',
+        'check_in_time': 'موعد العمل',
+        'check_out_time': 'موعد الانصراف',
+        'Ezn': 'الأذونات',
+        'Clinic': 'العيادات',
+        'Check-in Delays': 'التأخيرات',
+        'Agaza': 'الاجازات',
+        'Deductions': 'الخصومات',
+        'Ezn Delays': 'تأخيرات الأذونات',
+        'Summary': 'ملخص',
+        'Office Name': 'اسم المكتب',
+        'Reason': 'السبب',
+
+        'notes_agaza_manager': 'ملاحظات المدير',
+        'notes_agaza': 'ملاحظات الاجازة',
+        'arabic_day':'يوم',
+        'Absent Count':'الغياب',
+        'absent':'الغياب',
+    } %}
+    
+    <div class="container py-4" id="pdf-container">
+        <header class="d-flex justify-content-between align-items-center mb-4 animated-fade-in">
+            <div class="report-dates animated-fade-in mb-4" style=" font-size: larger;">
+                <p class="mb-0">من تاريخ : <span class="date-highlight">{{ from_date }}</span></p>
+                <p class="mb-0">إلى تاريخ : <span class="date-highlight">{{ to_date }}</span></p>
+            </div>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Institute Logo" class="logo">
+
+        </header>
+
+        <div class="report-title animated-fade-in">
+            <h2>تقرير المؤثرات ({{ 'ملخص' if report_type == 'count' else 'تفصيلي' }})</h2>
+        </div>
+
+
+
+        {% if report_type == 'count' %}
+            {% set offices = summary_report | groupby('Office') %}
+            {% set priority_offices = ['اجازة بدون مرتب', 'انتداب خارج وزارة الدفاع'] %}
+            {% set employee_count = namespace(value=0) %}
+        {% else %}
+            {% set offices = attendance_report | groupby('Office') %}
+            {% set priority_offices = ['اجازة بدون مرتب', 'انتداب خارج وزارة الدفاع'] %}
+            {% set employee_count = namespace(value=0) %}
+        {% endif %}
+
+        {% for office, employees in offices if office in priority_offices %}
+            <section class="office-section mb-5">
+                <h3 class="office-title">{{ office }}</h3>
+                
+                {% for employee in employees %}
+                    {% set employee_count.value = employee_count.value + 1 %}
+                    <div class="employee-section mb-4">
+                        <h4 class="employee-title">{{ employee['Employee Name'] }}</h4>
+                        
+                        {% if report_type == 'count' %}
+                        <table class="table table-striped table-bordered table-sm animated-fade-in summary-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الغياب</th>
+                                    <th>الأذونات</th>
+                                    <th>العيادات</th>
+                                    <th>التأخيرات</th>
+                                    <th>عن نفس اليوم</th>
+                                    <th>مرضي</th>
+                                    <th>بالخصم</th>
+                                    <th>الخصومات</th>
+                                    <th>تأخيرات الأذونات</th>
+                                    <th>التأخير الإجمالي</th>
+                                    <th>إجمالي نقاط الخصم</th>
+                                    <th>التقيم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ employee['Absent Count'] }}</td>
+                                    <td>{{ employee['Ezn Count'] }}</td>
+                                    <td>{{ employee['Clinic Count'] }}</td>
+                                    <td>
+
+                                        {{ employee['Check-in Delays Count'] }}
+                                    </td>
+                                    <td>{{ employee['Agaza Emergency Count'] }}</td>
+                                    <td>{{ employee['Agaza Sick Count'] }}</td>
+                                    <td>{{ employee['Agaza Sick ded']  }}</td>                                    
+                                    <td>{{ employee['Deductions Count'] }}</td>
+                                    <td>{{ employee['Ezn Delays Count'] }}</td>
+                                    <td>{{ employee['Delay Time'] }}</td>
+                                    <td>{{ employee['Total Deduction Points'] }}</td>
+                                    <td>{{ employee['rate'] }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        {% else %}
+                            {% for category in ['Ezn', 'Clinic', 'Check-in Delays', 'Agaza', 'Deductions', 'Ezn Delays' , 'agaza_ded'] %}
+                                {% if employee[category] %}
+                                <h5 style="text-align: center;">
+                                    {{ translations[category] if category in translations else category }}
+                                </h5>
+                                    <table class="table table-striped table-bordered table-sm animated-fade-in">
+                                        <thead class="table-light">
+                                            <tr>
+                                                {% if employee[category] is iterable and employee[category][0] is mapping %}
+                                                <!-- This handles the case where employee[category] is a list of dictionaries -->
+                                                {% for key in employee[category][0].keys() %}
+                                                    <th>{{ translations[key] if key in translations else key }}</th>
+                                                {% endfor %}
+                                                {% else %}
+                                                <!-- This handles the case where employee[category] is a string (like '00:19:38') -->
+                                                <th>{{ translations[category] if category in translations else category }}</th>
+                                                {% endif %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if employee[category] is iterable and employee[category][0] is mapping %}
+                                            <!-- If employee[category] is a list of dictionaries -->
+                                            {% for item in employee[category] %}
+                                                <tr>
+                                                    {% for value in item.values() %}
+                                                        <td>{{ value }}</td>
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
+                                            {% else %}
+                                            <!-- If employee[category] is a string (like '00:19:38') -->
+                                            <tr>
+                                                <td>{{ employee[category] }}</td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <h5>ملخص</h5>
+                            <table class="table table-striped table-bordered table-sm animated-fade-in summary-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>الغياب</th>
+                                        <th>الأذونات</th>
+                                        <th>العيادات</th>
+                                        <th>التأخيرات</th>
+                                        <th>عن نفس اليوم</th>
+                                        <th>مرضي</th>
+                                        <th>بالخصم</th>
+                                        <th>الخصومات</th>
+                                        <th>تأخيرات الأذونات</th>
+                                        <th>وقت التأخير الحضور</th>
+                                        <th>إجمالي نقاط الخصم</th>
+                                        <th>التقيم</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ employee['absent']| length  }}</td>
+                                        <td>{{ employee['Ezn'] | length }}</td>
+                                        <td>{{ employee['Clinic'] | length }}</td>
+                                        <td>
+                                            {% if employee['Check-in Delays'] | length > 0 %}
+                                                {{ employee['Check-in Delays'] | length - 1 }}
+                                            {% else %}
+                                                {{ employee['Check-in Delays'] | length }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Agaza Emergency Count') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Agaza Sick Count') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Agaza Sick ded') | first }}</td>
+                                        <td>
+                                            {% if employee['Deductions'] | length > 0 %}
+                                                {{ employee['Deductions'] | length - 1 }}
+                                            {% else %}
+                                                {{ employee['Deductions'] | length }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Ezn Delays Count') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Delay Time') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Total Deduction Points') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='rate') | first }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        {% endif %}
+                    </div>
+                    {% if not loop.last %}
+                        <hr>
+                    {% endif %}
+                {% endfor %}
+            </section>
+        {% endfor %}
+        
+
+
+
+        {% for office, employees in offices if office not in priority_offices %}
+            <section class="office-section mb-5">
+                <h3 class="office-title">{{ office }}</h3>
+                
+                {% for employee in employees %}
+                    {% set employee_count.value = employee_count.value + 1 %}
+                    <div class="employee-section mb-4">
+                        <h4 class="employee-title">{{ employee['Employee Name'] }}</h4>
+                        
+                        {% if report_type == 'count' %}
+                        <table class="table table-striped table-bordered table-sm animated-fade-in summary-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الغياب</th>
+                                    <th>الأذونات</th>
+                                    <th>العيادات</th>
+                                    <th>التأخيرات</th>
+                                    <th>عن نفس اليوم</th>
+                                    <th>مرضي</th>
+                                    <th>بالخصم</th>
+                                    <th>الخصومات</th>
+                                    <th>تأخيرات الأذونات</th>
+                                    <th>تاخيرات الحضور</th>
+                                    <th>إجمالي نقاط الخصم</th>
+                                    <th>التقيم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ employee['Absent Count'] }}</td>
+                                    <td>{{ employee['Ezn Count'] }}</td>
+                                    <td>{{ employee['Clinic Count'] }}</td>
+                                    <td>
+
+                                        {{ employee['Check-in Delays Count'] }}
+                                    </td>
+                                    <td>{{ employee['Agaza Emergency Count'] }}</td>
+                                    <td>{{ employee['Agaza Sick Count'] }}</td>
+                                    <td>{{ employee['Agaza Sick ded']  }}</td>                                    
+                                    <td>{{ employee['Deductions Count'] }}</td>
+                                    <td>{{ employee['Ezn Delays Count'] }}</td>
+                                    <td>{{ employee['Delay Time'] }}</td>
+                                    <td>{{ employee['Total Deduction Points'] }}</td>
+                                    <td>{{ employee['rate'] }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        {% else %}
+                            {% for category in ['Ezn', 'Clinic', 'Check-in Delays', 'Agaza', 'Deductions', 'Ezn Delays', 'absent'  , 'agaza_ded'] %}
+                                {% if employee[category] %}
+                                <h5 style="text-align: center;">
+                                    {{ translations[category] if category in translations else category }}
+                                </h5>
+                                    <table class="table table-striped table-bordered table-sm animated-fade-in">
+                                        <thead class="table-light">
+                                            <tr>
+                                                {% if employee[category] is iterable and employee[category][0] is mapping %}
+                                                <!-- This handles the case where employee[category] is a list of dictionaries -->
+                                                {% for key in employee[category][0].keys() %}
+                                                    <th>{{ translations[key] if key in translations else key }}</th>
+                                                {% endfor %}
+                                                {% else %}
+                                                <!-- This handles the case where employee[category] is a string (like '00:19:38') -->
+                                                <th>{{ translations[category] if category in translations else category }}</th>
+                                                {% endif %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if employee[category] is iterable and employee[category][0] is mapping %}
+                                            <!-- If employee[category] is a list of dictionaries -->
+                                            {% for item in employee[category] %}
+                                                <tr>
+                                                    {% for value in item.values() %}
+                                                        <td>{{ value }}</td>
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
+                                            {% else %}
+                                            <!-- If employee[category] is a string (like '00:19:38') -->
+                                            <tr>
+                                                <td>{{ employee[category] }}</td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <h5>ملخص</h5>
+                            <table class="table table-striped table-bordered table-sm animated-fade-in summary-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>الغياب</th>
+                                        <th>الأذونات</th>
+                                        <th>العيادات</th>
+                                        <th>التأخيرات</th>
+                                        <th>عن نفس اليوم</th>
+                                        <th>مرضي</th>
+                                        <th>بالخصم</th>
+                                        <th>الخصومات</th>
+                                        <th>تأخيرات الأذونات</th>
+                                        <th>وقت التأخير الحضور</th>
+                                        <th>إجمالي نقاط الخصم</th>
+                                        <th>التقيم</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ employee['absent'] | length }}</td>
+                                        <td>{{ employee['Ezn'] | length }}</td>
+                                        <td>{{ employee['Clinic'] | length }}</td>
+                                        <td>
+                                            {% if employee['Check-in Delays'] | length > 0 %}
+                                                {{ employee['Check-in Delays'] | length - 1 }}
+                                            {% else %}
+                                                {{ employee['Check-in Delays'] | length }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Agaza Emergency Count') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Agaza Sick Count') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Agaza Sick ded') | first }}</td>
+                                        <td>
+                                            {% if employee['Deductions'] | length > 0 %}
+                                                {{ employee['Deductions'] | length - 1 }}
+                                            {% else %}
+                                                {{ employee['Deductions'] | length }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Ezn Delays Count') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Delay Time') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='Total Deduction Points') | first }}</td>
+                                        <td>{{ summary_report | selectattr('Employee Name', 'equalto', employee['Employee Name']) | map(attribute='rate') | first }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        {% endif %}
+                    </div>
+                    {% if not loop.last %}
+                        <hr>
+                    {% endif %}
+                {% endfor %}
+            </section>
+        {% endfor %}
+         
+
+
+
+    </div>
+</body>
+</html>

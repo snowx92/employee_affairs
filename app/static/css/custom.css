@@ -1,0 +1,482 @@
+/* Define the custom font */
+@font-face {
+    font-family: 'Cairo-Regular';
+    src: url('/static/webfonts/Cairo-Regular.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+/* Define the custom font */
+@font-face {
+    font-family: 'Cairo-Bold';
+    src: url('/static/webfonts/Cairo-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+.green{
+    color: #fff;
+    background-color: #059b05 !important;
+    border-color: #059b05 !important; 
+}
+.dashboard-box{
+    font-family: 'Cairo-Bold', sans-serif;
+}
+
+/* Background color for the entire website */
+body {
+    background-color: #F5F7FF;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-family: 'Cairo-Regular', sans-serif;
+
+}
+
+/* Sidebar styling */
+#sidebar {
+    margin-top: 5px;
+    position: fixed;
+    height: 100%;
+    top :80px;
+    bottom: 0;
+    left: 0;
+    width: 300px;
+    padding-top: 20px;
+    background-color: #ffffff !important; /* Light background for the sidebar */
+    overflow-y: auto;
+    font-weight: 400;
+    transition: background 0.25s ease;
+    -webkit-transition: background 0.25s ease;
+    -moz-transition: background 0.25s ease;
+    -ms-transition: background 0.25s ease;
+    -webkit-box-shadow: 0px 5px 21px -5px #CDD1E1;
+    -moz-box-shadow: 0px 5px 21px -5px #CDD1E1;
+    box-shadow: 0px 5px 21px -5px #CDD1E1;
+}
+
+/* Fixed element with scroll */
+.fixed {
+    max-height: 100%;
+    overflow-y: scroll;
+    top: 80px;
+
+}
+
+
+
+/* Main content styling */
+main {
+    margin-left: 300px; /* Adjusted margin to match the sidebar width */
+    padding-top: 20px;
+
+}
+.nav-item{
+    margin-bottom: 10px;
+}
+/* Navbar link hover effect */
+.nav-link.active {
+    font-weight: bolder;
+    
+}
+
+/* Sidebar navigation link styling */
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: #333;
+    font-weight: 700;
+    font-family: 'Cairo-Bold', sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 18px;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #4b49ac; /* Primary color for hover */
+    color: #fff;
+}
+
+/* Form check styling */
+.form-check {
+    display: flex;
+    align-items: center;
+    padding-left: 1.5rem; /* Adjust padding as needed */
+}
+
+.form-check-input {
+    margin-right: 0.75rem; /* Adjust margin as needed */
+}
+
+.form-check-label {
+    margin-bottom: 0; /* Ensures there's no additional margin below the label */
+}
+
+/* Form select styling */
+.form-select {
+    padding: 0.75rem 1.25rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    width: 100%;
+}
+
+.form-select:focus {
+    border-color: #7da0fa; /* Supporting color for focus */
+    box-shadow: 0 0 0 0.2rem rgba(38, 143, 255, 0.25);
+}
+
+/* Table animation */
+.animated-table tbody tr {
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.animated-table tbody tr:hover {
+    transform: translateY(-5px);
+    background-color: #f1f1f1;
+}
+
+/* Table border styling */
+.table-bordered {
+    border: 1px solid #dee2e6;
+}
+
+/* Table header styling */
+.thead-dark th {
+    background-color: #343a40;
+    color: #fff;
+    text-align: center;
+}
+
+/* Table cell styling */
+.table th, .table td {
+    padding: 1.5rem; /* Increased padding for more spacious columns */
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Thumbnail image styling */
+.img-thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+
+/* Container padding */
+.container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Button styling */
+.btn {
+    margin: 0.2rem;
+}
+
+/* Center text alignment */
+.text-center {
+    text-align: center;
+}
+
+/* Hover effect for links */
+.hover-1:hover {
+    color: #7da0fa; /* Supporting color for hover effect */
+    text-decoration: none;
+}
+
+/* WebKit browsers (Chrome, Safari) scrollbar styling */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+/* WebKit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+    width: 12px; /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: #F5F7FF; /* Light background color matching website background */
+}
+
+::-webkit-scrollbar-thumb {
+    background: #7da0fa; /* Supporting color for scrollbar thumb */
+    border-radius: 6px; /* Rounded corners for the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #7978e9; /* Darker shade on hover */
+}
+
+/* Firefox scrollbar styling */
+.scrollable-element {
+    scrollbar-width: thin; /* Thin scrollbar */
+    scrollbar-color: #7da0fa #F5F7FF; /* Thumb color and track color */
+}
+
+/* Internet Explorer / Edge */
+html {
+    -ms-overflow-style: scrollbar; /* Default scrollbar */
+}
+
+/* Internet Explorer / Edge scrollbar styling */
+html {
+    -ms-overflow-style: scrollbar;
+}
+
+/* Optional: Customize scrollbar on specific elements */
+.custom-scrollbar {
+    overflow: auto;
+}
+
+.nav-link i {
+    padding-right: 10px;
+}
+
+
+/* Sidebar Icon Styles */
+.nav-link i {
+    color: #4b49ac; /* Primary color */
+    transition: color 0.3s ease;
+}
+
+/* Change icon color on hover */
+.nav-link:hover i {
+    color: #009688; /* Supporting color */
+}
+
+/* Highlight icon for active page */
+.nav-link.active i {
+    color: #00796b; /* Darker supporting color or a different color for active */
+}
+/* Highlight icon for active page */
+.nav-link.active  {
+    background-color: #4b49ac; /* Darker supporting color or a different color for active */
+    color: #ffffff;
+}
+body {
+    background-color: #F5F7FF;
+}
+
+.jumbotron {
+    box-shadow: 0px 5px 21px -5px #CDD1E1;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 0 !important;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Full viewport height */
+    text-align: center;
+    color: #333;
+    /* Text color, adjust as needed */
+}
+
+
+
+.icon {
+    margin-bottom: 20px;
+    font-size: 3rem;
+    /* Adjust size as needed */
+    color: #7da0fa;
+    /* Primary color from your palette */
+}
+
+.jumbotron .display-4 {
+    font-size: 2.5rem;
+    /* Adjust font size as needed */
+    color: #343a40;
+    /* Adjust color from your palette */
+}
+
+.jumbotron .lead {
+    font-size: 1.25rem;
+    /* Adjust font size as needed */
+    color: #6c757d;
+    /* Adjust color from your palette */
+}
+
+.jumbotron hr {
+    border-color: #7da0fa;
+    /* Primary color for the horizontal rule */
+}
+.username {
+color: #7da0fa; /* Primary color from your palette */
+font-family: 'Cairo-Bold', sans-serif;
+font-weight: bold; /* Ensure the username is bold */
+}
+
+.lead {
+font-size: 1.25rem; /* Adjust font size as needed */
+color: #6c757d; /* Adjust color from your palette */
+font-weight: bold; /* Make text bold */
+}
+
+.jumbotron hr {
+border: none;
+height: 10px;
+
+}
+
+.dashboard-container {
+    display: flex;
+    flex-wrap: wrap;
+    
+    justify-content: space-around;
+    
+}
+
+.dashboard-box {
+    margin-bottom: 10px;
+    box-shadow: 0px 5px 21px -5px #7da0fa;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    width: 30%;
+    font-weight: 400;
+    color: #4b49ac;
+    position: relative;
+}
+
+.dashboard-box:nth-child(odd) {
+    box-shadow: 0px 5px 21px -5px #7978e9;
+}
+
+.dashboard-box:nth-child(even) {
+    box-shadow: 0px 5px 21px -5px #98bdff;
+}
+
+.dashboard-box h3 {
+    margin-bottom: 15px;
+    color: #4b49ac;
+    /* Primary color */
+    font-weight: bold;
+}
+
+.dashboard-box p {
+    font-size: 28px;
+    color: #000;
+    /* Black color for numbers */
+    font-weight: bold;
+    margin-top: 10px;
+    animation: counter 2s;
+}
+
+@keyframes counter {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-box i {
+    font-size: 50px;
+    color: #00796b;
+    /* Secondary color */
+
+    top: 10px;
+    right: 10px;
+}
+
+.date-container {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 20px;
+    color: #4b49ac;
+    /* Primary color */
+    font-weight: bold;
+}
+.button_font{
+    color: #fff;
+    background-color: #4b49ac !important;
+    border-color: #4b49ac !important;
+    color: #ffffff;
+    font-weight: bold;
+    padding: 10px 50px;
+    font-size: 20px;
+}
+.button_font:hover{
+    color: #fff;
+    background-color: #5D5BB4 !important;
+    border-color: #5D5BB4 !important;
+}
+/* Style for all select elements */
+select , input[type=date].form-control {
+    background-color: #ffffff !important; /* Background color of the select box */
+    border: 1px solid #7da0fa !important; /* Border color for the select box */
+    color: #000 !important; /* Text color */
+    font-size: 20px!important; /* Font size */
+    height: 60px !important;
+    padding: 10px; /* Padding inside the select box */
+    font-weight: bold!important; /* Make text bold */
+    border-radius: 5px!important; /* Rounded corners */
+    cursor: pointer!important; /* Cursor style */
+}
+
+/* Style for the dropdown list */
+
+/* Style for all option elements */
+option {
+    color: #000000; /* Default text color */
+    font-weight: bolder; /* Make text bold */
+}
+
+option:hover {
+    color: #ffffff; /* Default text color */
+    background-color: #000000;
+}
+
+/* Style for selected option (only in modern browsers, limited support) */
+select option:checked {
+    color: #000; /* Primary color for selected option */
+}
+select option:disabled{
+
+    color: #00796b;
+}
+.table .thead-dark th {
+    color: #fff !important;
+    background-color: #c9c6ff !important;
+    border-color: #fff !important;
+
+}
+.table .thead-dark th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.table .thead-dark th:last-child {
+    border-top-right-radius: 10px;
+}
+.table .table-dark th {
+    color: #fff !important;
+    background-color: #c9c6ff !important;
+    border-color: #fff !important;
+
+}
+.table .table-dark th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.table .table-dark th:last-child {
+    border-top-right-radius: 10px;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #ffffff;
+}
+.table-striped tbody tr {
+    background-color: #ecebfd;
+}
+.flex{
+display: flex;
+justify-content: space-around; 
+flex-direction: row-reverse;
+}
+.accordion>.card {
+    overflow-y: scroll;
+}

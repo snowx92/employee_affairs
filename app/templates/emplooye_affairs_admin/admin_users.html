@@ -1,0 +1,465 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تحكم الموظفين{% endblock %}
+
+{% block admin_content %}
+<style>
+    .paginate {
+        padding: 32px 64px;
+        display: flex;
+        justify-content: space-between;
+        background-color: #fff;
+        border-radius: 64px;
+        border: 4px solid rgb(255 222 210)
+    }
+    .column-header {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .column-header select {
+        min-width: 100px;
+    }
+    
+    .thead-dark th {
+        min-width: 120px;
+    }
+    
+    .search-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+    }
+    .paginate-details {
+        margin-top: 16px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .paginate button {
+        background-color: transparent;
+        border: none;
+    }
+
+    .nextBtn {
+        margin-left: 32px;
+    }
+
+    .nextBtn {
+        margin-right: 32px;
+    }
+
+    .prevBtn,
+    .nextBtn {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #2a3b52
+    }
+
+    .nextBtn-icon,
+    .prevBtn-icon {
+        display: flex;
+    }
+
+    .prevBtn svg {
+        margin-right: 6px;
+    }
+
+    .nextBtn svg {
+        margin-left: 6px;
+    }
+
+    .prevBtn svg,
+    .nextBtn svg {
+        color: #2a3b52
+    }
+
+    button[disabled].prevBtn,
+    button[disabled].nextBtn {
+        cursor: not-allowed;
+        color: rgb(156 163 175 / var(--tw-text-opacity));
+    }
+
+    .containerBtns {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .leftContainer {
+        display: flex;
+        width: 190px;
+        justify-content: end;
+    }
+
+    .rightContainer {
+        display: flex !important;
+        width: 190px !important;
+        justify-content: start !important;
+    }
+
+    .activeBtn {
+        margin: 0 12px !important;
+        padding: 4px 6px !important;
+        min-width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #5046e5 !important;
+        font-size: 20px !important;
+        color: #fff !important;
+        border-radius: 50% !important;
+        border: 4px solid #c9c6ff !important;
+    }
+
+    .numberBtn {
+        cursor: pointer !important;
+        margin: 0 4px !important;
+        min-width: 40px !important;
+        padding: 4px !important;
+        font-size: 18px !important;
+    }
+
+    .numberBtn[disabled] {
+        cursor: not-allowed
+    }
+    /* Styling for the container holding the button and search bar */
+.d-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem; /* Adjust spacing */
+}
+
+/* Button Styling */
+.btn-success {
+    font-size: 1rem; /* Consistent font size */
+    padding: 0.75rem 1.25rem; /* Padding for better appearance */
+    border-radius: 2rem; /* Rounded corners */
+    font-family: 'Arial', sans-serif; /* Custom font family */
+}
+
+/* Search input styling */
+.searchInputWrapper {
+    position: relative;
+}
+
+.searchInput {
+    width: 20rem; /* Adjust width */
+    height: 2.5rem; /* Height of the input */
+    padding: 0 2.5rem 0 1rem; /* Adjust padding for icon */
+    border-radius: 2rem; /* Rounded corners */
+    border: 1px solid #ccc; /* Border for the input */
+    transition: transform 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    font-size: 1rem; /* Font size for readability */
+}
+
+.searchInput::placeholder {
+    color: #a1a1a1; /* Placeholder text color */
+}
+
+.searchInput:focus {
+    outline: none;
+    transform: scale(1.1);
+    border-color: #80bdff; /* Border color on focus */
+}
+
+.searchInputIcon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a1a1a1;
+    transition: all 0.1s ease-in-out;
+}
+
+.searchInputWrapper:focus-within .searchInputIcon {
+    right: 0.75rem; /* Adjust icon position on focus */
+}
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x:unset; 
+    -webkit-overflow-scrolling: touch;
+}
+</style>
+
+<div class="container py-5" style="max-width: 100%;">
+    <div class="jumbotron">
+        <div class="container">
+            <h1 class="display-4">
+                <span class="username">الموظفين</span>
+            </h1>
+            <p class="text-center mb-4 lead">يمكنك إدارة كل موظفيك من هنا </p>
+            <hr class="my-4 ">
+        </div>
+    </div>
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <div class="d-flex justify-content-between align-items-center mb-4" style="
+    justify-content: space-around !important;
+    flex-direction: row !important;
+">
+        <a href="{{ url_for('main.add_employee') }}" class="btn btn-success button_font">اضافة موظف</a>
+        <div class="searchInputWrapper">
+            <input style="text-align: center;" type="text" id="searchBar" class="searchInput" placeholder="ابحث بالاسم أو الرقم التعريفي">
+            <i class="searchInputIcon fa fa-search"></i>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-striped animated-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>الرقم التعريفي</th>
+                    <th>الاسم</th>
+                    <th>
+                        <div class="column-header">
+                            <div style="cursor:pointer;" onclick="sortTable(2)">المكتب <span id="arrow2">↕</span></div>
+                            <select class="form-select form-select-sm mt-1" onchange="filterTable()" id="officeFilter">
+                                <option value="">الكل</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="column-header">
+                            <div style="cursor:pointer;" onclick="sortTable(3)">الوظيفة <span id="arrow3">↕</span></div>
+                            <select class="form-select form-select-sm mt-1" onchange="filterTable()" id="jobFilter">
+                                <option value="">الكل</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="column-header">
+                            <div style="cursor:pointer;" onclick="sortTable(4)">الفترة <span id="arrow4">↕</span></div>
+                            <select class="form-select form-select-sm mt-1" onchange="filterTable()" id="periodFilter">
+                                <option value="">الكل</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>موعد الحضور</th>
+                    <th>موعد الانصراف</th>
+                    <th>
+                        <div class="column-header">
+                            <div style="cursor:pointer;" onclick="sortTable(7)">التعاقد <span id="arrow7">↕</span></div>
+                            <select class="form-select form-select-sm mt-1" onchange="filterTable()" id="contractFilter">
+                                <option value="">الكل</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="column-header">
+                            <div style="cursor:pointer;" onclick="sortTable(8)">الحالة <span id="arrow8">↕</span></div>
+                            <select class="form-select form-select-sm mt-1" onchange="filterTable()" id="statusFilter">
+                                <option value="">الكل</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>رقم الهاتف</th>
+                    <th>الصورة</th>
+                    <th>أجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTable">
+                {% for employee in employees %}
+                <tr>
+                    <td>{{ employee.id }}</td>
+                    <td>{{ employee.name }}</td>
+                    <td>{{ employee.office_name }}</td>
+                    <td>{{ employee.job_name_modli }}</td>
+                    <td>{{ employee.period }}</td>
+                    <td>{{ employee.job_start_time }}</td>
+                    <td>{{ employee.job_end_time }}</td>
+                    <td>{{ employee.emp_type }}</td>
+                    <td>{{ employee.active }}</td>
+                    <td>{{ employee.phone_number }}</td>
+                    <td>
+                        {% if employee.photo %}
+                        <img src="{{ url_for('static', filename='emp_imgs/' + employee.photo) }}" alt="Photo" class="img-thumbnail">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='emp_imgs/profile.png') }}" alt="Photo" class="img-thumbnail">
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('main.add_employee', employee_id=employee.id) }}" class="btn btn-primary btn-sm">تعديل</a>
+                        <form action="{{ url_for('main.delete_employee', employee_id=employee.id) }}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm mx-1" onclick="return confirm('هل انت متاكد انك تريد حذف هذا الموظف?');">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</div>
+<script>
+    let sortState = {};  // Keeps track of the sorting state for each column
+    let tableData = [];  // Cache for table data
+    
+    // Function to populate filter dropdowns
+    function populateFilters() {
+        const table = document.getElementById('employeeTable');
+        if (!table) return;
+        
+        const rows = table.getElementsByTagName('tr');
+        
+        // Create sets to store unique values
+        const offices = new Set();
+        const jobs = new Set();
+        const periods = new Set();
+        const contracts = new Set();
+        const statuses = new Set();
+        
+        // Cache table data and collect unique values
+        tableData = Array.from(rows).map(row => ({
+            element: row,
+            office: row.cells[2]?.textContent.trim() || '',
+            job: row.cells[3]?.textContent.trim() || '',
+            period: row.cells[4]?.textContent.trim() || '',
+            contract: row.cells[7]?.textContent.trim() || '',
+            status: row.cells[8]?.textContent.trim() || ''
+        }));
+        
+        // Collect unique values from cached data
+        tableData.forEach(row => {
+            if (row.office) offices.add(row.office);
+            if (row.job) jobs.add(row.job);
+            if (row.period) periods.add(row.period);
+            if (row.contract) contracts.add(row.contract);
+            if (row.status) statuses.add(row.status);
+        });
+        
+        // Function to populate a select element
+        function populateSelect(selectId, values) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            // Clear existing options except the first one
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+            
+            // Add new options
+            Array.from(values).sort().forEach(value => {
+                if (value) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                }
+            });
+        }
+        
+        // Populate all filter dropdowns
+        populateSelect('officeFilter', offices);
+        populateSelect('jobFilter', jobs);
+        populateSelect('periodFilter', periods);
+        populateSelect('contractFilter', contracts);
+        populateSelect('statusFilter', statuses);
+    }
+    
+    // Function to filter the table
+    function filterTable() {
+        if (!tableData.length) return;
+        
+        // Get filter values
+        const officeFilter = document.getElementById('officeFilter')?.value || '';
+        const jobFilter = document.getElementById('jobFilter')?.value || '';
+        const periodFilter = document.getElementById('periodFilter')?.value || '';
+        const contractFilter = document.getElementById('contractFilter')?.value || '';
+        const statusFilter = document.getElementById('statusFilter')?.value || '';
+        
+        // Filter the cached data
+        tableData.forEach(row => {
+            let showRow = true;
+            
+            // Check each filter
+            if (officeFilter && row.office !== officeFilter) showRow = false;
+            if (jobFilter && row.job !== jobFilter) showRow = false;
+            if (periodFilter && row.period !== periodFilter) showRow = false;
+            if (contractFilter && row.contract !== contractFilter) showRow = false;
+            if (statusFilter && row.status !== statusFilter) showRow = false;
+            
+            // Show/hide row
+            row.element.style.display = showRow ? '' : 'none';
+        });
+    }
+    
+    function sortTable(columnIndex) {
+        const table = document.querySelector('table');
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+    
+        const rows = Array.from(tbody.rows);
+        const ascending = sortState[columnIndex] !== 'asc';  // Toggle the sort state
+    
+        // Sort the rows
+        rows.sort((a, b) => {
+            const aText = a.cells[columnIndex]?.innerText.trim() || '';
+            const bText = b.cells[columnIndex]?.innerText.trim() || '';
+            return ascending ? 
+                aText.localeCompare(bText, 'ar') : 
+                bText.localeCompare(aText, 'ar');
+        });
+    
+        // Update the arrow and sort state
+        updateArrows(columnIndex, ascending);
+        sortState[columnIndex] = ascending ? 'asc' : 'desc';
+    
+        // Use DocumentFragment for better performance
+        const fragment = document.createDocumentFragment();
+        rows.forEach(row => fragment.appendChild(row));
+        tbody.appendChild(fragment);
+    }
+    
+    function updateArrows(columnIndex, ascending) {
+        const allArrows = document.querySelectorAll('thead th span');
+        allArrows.forEach(arrow => arrow.innerText = '↕');
+    
+        const arrow = document.getElementById('arrow' + columnIndex);
+        if (arrow) {
+            arrow.innerText = ascending ? '↑' : '↓';
+        }
+    }
+    
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        const saveButton = document.getElementById('saveButton');
+        const searchBar = document.getElementById('searchBar');
+        const table = document.querySelector('table');
+        const tbody = table.querySelector('tbody');
+        let rows = Array.from(tbody.querySelectorAll('tr'));
+    
+
+        // Search functionality
+        searchBar.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            rows.forEach(row => {
+                const idCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const nameCell = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                if (idCell.includes(searchTerm) || nameCell.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        populateFilters();
+    });
+</script>
+{% endblock %}

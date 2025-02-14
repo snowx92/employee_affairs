@@ -1,0 +1,301 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}Admin Settings{% endblock %}
+
+{% block admin_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animate.min.css') }}">
+
+<style>
+  .container {
+    margin-top: 50px;
+  }
+
+  .form-label {
+    font-size: 1.25rem;
+    font-weight: bold;
+
+  }
+
+  .form-select {
+    font-size: 1.25rem;
+
+
+
+    transition: all 0.3s ease-in-out;
+  }
+
+  .form-select:hover,
+  .form-select:focus {
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .animated-dropdown {
+    animation-duration: 1s;
+  }
+
+  .btn {
+    width: 200px;
+    font-size: xx-large;
+
+    border: none;
+
+    margin-bottom: 20px;
+  }
+
+  .dropdown-menu {
+    width: 180px;
+    margin-left: 10px;
+
+    position: absolute;
+  }
+
+  .dropdown-item {
+    font-size: large;
+    text-align: center;
+
+  }
+</style>
+
+<div class="jumbotron">
+  <div class="container">
+
+      <h1 class="display-4">
+           <span class="username">شئون عاملين السيستم القديم</span>
+      </h1>
+      <p class="lead">
+          هنشتغل هنا مؤقتا لحد ما الجديد يخلص
+      </p>
+      <hr class="my-4 ">
+      <p class="lead"> 
+          اختار من الاختيارات للتنقل للصفحة الي محتاجها
+      </p>
+  </div>
+</div>
+<div class="container animated fadeIn">
+  
+  <div class="row justify-content-center">
+    <div class="col-6 mb-4">
+      <label for="firstDropdown" class="form-label">التصنيفات</label>
+      <select class="form-select animated-dropdown bounceIn" id="firstDropdown" onchange="updateSecondDropdown()">
+        <option value="" selected disabled>اختار اختيار</option>
+        <option value="requests">طلبات</option>
+        <option value="approvals">تصديقات</option>
+        <option value="followups">متابعات</option>
+      </select>
+    </div>
+    <div class="col-6 mb-4">
+      <label for="secondDropdown" class="form-label">اختار اجراء </label>
+      <select class="form-select animated-dropdown bounceIn" id="secondDropdown" onchange="updateThirdDropdown()"
+        disabled>
+        <option value="" selected disabled>اختار اجراء</option>
+      </select>
+    </div>
+    <div class="col-6 mb-4" id="thirdDropdownContainer" style="display: none;">
+      <label for="thirdDropdown" class="form-label">اختار اجراء اخري</label>
+      <select class="form-select animated-dropdown bounceIn" id="thirdDropdown" onchange="redirectToLink()" disabled>
+        <option value="" selected disabled>اختار اجراء اخري</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+  const options = {
+    requests: [
+      { text: 'معرفة الرصيد', url: 'http://192.168.97.19:3000/agaza_balance' },
+      { text: 'طلب أجازة', url: 'http://192.168.97.19:3000/agaza_balance' },
+      { text: 'طلب إذن', url: 'http://192.168.97.19:3000/ezn' },
+      { text: 'طلب عيادة', url: 'http://192.168.97.19:3000/clinic' },
+      { text: 'طلب التماس', url: 'http://192.168.97.19:3000/petition' }
+    ],
+    approvals: [
+      { text: 'تصديق أجازة', value: 'tasdekLinks' },
+      { text: 'تصديق إذن', value: 'eznTasdekLinks' },
+      { text: 'تصديق عيادة', url: 'http://192.168.97.19:3000/tasdek_sece_clinic' },
+      { text: 'تصديق التماس', value: 'petitionTasdekLinks' }
+    ],
+    followups: [
+      { text: 'متابعة أجازة', url: 'http://192.168.97.19:3000/pending' },
+      { text: 'متابعة إذن', url: 'http://192.168.97.19:3000/pending_ezn' },
+      { text: 'متابعة التماس', url: 'http://192.168.97.19:3000/pending_petition' }
+    ]
+  };
+  const Links = {
+    tasdekLinks: [
+      { text: 'مدير معهد اللغات', url: 'http://192.168.97.19:3000/tasdek_general', backgroundColor: null },
+      { text: 'نائب مدير معهد اللغات', url: 'http://192.168.97.19:3000/tasdek_na2eb', backgroundColor: null },
+      { text: 'رئيس فرع شئون العملين المدنيين  عام', url: 'http://192.168.97.19:3000/tasdek_sh2on_MD', backgroundColor: '#2080bd' },
+      { text: 'رئيس فرع شئون العملين المدنيين  فرع', url: 'http://192.168.97.19:3000/tasdek_sh2on_m', backgroundColor: 'orange' },
+      { text: 'رئيس فرع شئون العملين المدنيين  طباعة', url: 'http://192.168.97.19:3000/print_talab', backgroundColor: 'orangered' },
+      { text: 'متابعة السيد المدير عام', url: 'http://192.168.97.19:3000/tasdek_secgeneral', backgroundColor: '#2080bd' },
+      { text: 'متابعة السيد المدير فرع', url: 'http://192.168.97.19:3000/tasdek_M_general', backgroundColor: 'orange' },
+      { text: 'رئيس فرع السكرتارية والإدارة المحلية عام', url: 'http://192.168.97.19:3000/tasdek_sh2on_sec', backgroundColor: '#2080bd' },
+      { text: 'رئيس فرع السكرتارية والإدارة المحلية فرع', url: 'http://192.168.97.19:3000/tasdek_sec1', backgroundColor: 'orange' },
+      { text: 'قائد مركز التعليم', url: 'http://192.168.97.19:3000/tasdek_markz', backgroundColor: null },
+      { text: 'أركان حرب مبنى 1', url: 'http://192.168.97.19:3000/tasdek_arkan1', backgroundColor: null },
+      { text: 'أركان حرب مبنى 3', url: 'http://192.168.97.19:3000/tasdek_arkan3', backgroundColor: null },
+      { text: 'رئيس فرع التخطيط', url: 'http://192.168.97.19:3000/tasdek_ta5tet', backgroundColor: null },
+      { text: 'رئيس فرع الترجمة العسكرية', url: 'http://192.168.97.19:3000/tasdek_targama3', backgroundColor: null },
+      { text: 'رئيس فرع الترجمة المدنية', url: 'http://192.168.97.19:3000/tasdek_targamaM', backgroundColor: null },
+      { text: 'رئيس فرع التطوير', url: 'http://192.168.97.19:3000/tasdek_tatwer', backgroundColor: null },
+      { text: 'قائد مجمع الخدمات', url: 'http://192.168.97.19:3000/tasdek_mogam3', backgroundColor: null },
+      { text: 'رئيس فرع شئون الدارسين', url: 'http://192.168.97.19:3000/tasdek_sh2ond', backgroundColor: null },
+      { text: 'رئيس فرع الامتحانات', url: 'http://192.168.97.19:3000/tasdek_exam', backgroundColor: null },
+      { text: 'رئيس فرع الامتحانات المسائية', url: 'http://192.168.97.19:3000/tasdek_examn', backgroundColor: null },
+      { text: 'رئيس فرع التدريب', url: 'http://192.168.97.19:3000/tasdek_tadreb', backgroundColor: null },
+      { text: 'رئيس قسم الشئون الفنية', url: 'http://192.168.97.19:3000/tasdek_sh2on', backgroundColor: null },
+      { text: 'رئيس قسم تشغيل الحواسب', url: 'http://192.168.97.19:3000/tasdek_css', backgroundColor: null },
+      { text: 'قائد المطبعة', url: 'http://192.168.97.19:3000/tasdek_printer', backgroundColor: null },
+      { text: 'قائد الأمن', url: 'http://192.168.97.19:3000/tasdek_AMN', backgroundColor: null },
+      { text: 'رئيس قسم الجودة', url: 'http://192.168.97.19:3000/tasdek_gwd', backgroundColor: null },
+      { text: 'رئيس فرع الاحتياجات', url: 'http://192.168.97.19:3000/tasdek_need', backgroundColor: null },
+      { text: 'رئيس فرع الخزينة', url: 'http://192.168.97.19:3000/tasdek_treasur', backgroundColor: null },
+      { text: 'المكتبة', url: 'http://192.168.97.19:3000/tasdek_library', backgroundColor: null },
+      { text: 'قائد جناح اللغة العبرية', url: 'http://192.168.97.19:3000/tasdek_hebrw', backgroundColor: null },
+      { text: 'قائد جناح اللغة العربية', url: 'http://192.168.97.19:3000/tasdek_arb', backgroundColor: null },
+    ],
+    eznTasdekLinks: [
+      { text: 'مدير معهد اللغات', url: 'http://192.168.97.19:3000/tasdek_ezn_general', backgroundColor: null },
+      { text: 'نائب مدير معهد اللغات', url: 'http://192.168.97.19:3000/tasdek_ezn_na2eb', backgroundColor: null },
+      { text: 'رئيس فرع شئون العملين المدنيين  عام', url: 'http://192.168.97.19:3000/tasdek_ezn_sh2on_MD', backgroundColor: '#2080bd' },
+      { text: 'رئيس فرع شئون العملين المدنيين  فرع', url: 'http://192.168.97.19:3000/tasdek_ezn_sh2on_m', backgroundColor: 'orange' },
+      { text: 'رئيس فرع شئون العملين المدنيين  طباعة', url: 'http://192.168.97.19:3000/print_ezn_talab', backgroundColor: 'orangered' },
+      { text: 'متابعة السيد المدير عام', url: 'http://192.168.97.19:3000/tasdek_ezn_secgeneral', backgroundColor: '#2080bd' },
+      { text: 'متابعة السيد المدير فرع', url: 'http://192.168.97.19:3000/tasdek_ezn_M_general', backgroundColor: 'orange' },
+      { text: 'رئيس فرع السكرتارية والإدارة المحلية عام', url: 'http://192.168.97.19:3000/tasdek_ezn_sh2on_sec', backgroundColor: '#2080bd' },
+      { text: 'رئيس فرع السكرتارية والإدارة المحلية فرع', url: 'http://192.168.97.19:3000/tasdek_ezn_sec1', backgroundColor: 'orange' },
+      { text: 'قائد مركز التعليم', url: 'http://192.168.97.19:3000/tasdek_ezn_markz', backgroundColor: null },
+      { text: 'أركان حرب مبنى 1', url: 'http://192.168.97.19:3000/tasdek_ezn_arkan1', backgroundColor: null },
+      { text: 'أركان حرب مبنى 3', url: 'http://192.168.97.19:3000/tasdek_ezn_arkan3', backgroundColor: null },
+      { text: 'رئيس فرع التخطيط', url: 'http://192.168.97.19:3000/tasdek_ezn_ta5tet', backgroundColor: null },
+      { text: 'رئيس فرع الترجمة العسكرية', url: 'http://192.168.97.19:3000/tasdek_ezn_targama3', backgroundColor: null },
+      { text: 'رئيس فرع الترجمة المدنية', url: 'http://192.168.97.19:3000/tasdek_ezn_targamaM', backgroundColor: null },
+      { text: 'رئيس فرع التطوير', url: 'http://192.168.97.19:3000/tasdek_ezn_tatwer', backgroundColor: null },
+      { text: 'قائد مجمع الخدمات', url: 'http://192.168.97.19:3000/tasdek_ezn_mogam3', backgroundColor: null },
+      { text: 'رئيس فرع شئون الدارسين', url: 'http://192.168.97.19:3000/tasdek_ezn_sh2ond', backgroundColor: null },
+      { text: 'رئيس فرع الامتحانات', url: 'http://192.168.97.19:3000/tasdek_ezn_exam', backgroundColor: null },
+      { text: 'رئيس فرع الامتحانات المسائية', url: 'http://192.168.97.19:3000/tasdek_ezn_examn', backgroundColor: null },
+      { text: 'رئيس فرع التدريب', url: 'http://192.168.97.19:3000/tasdek_ezn_tadreb', backgroundColor: null },
+      { text: 'رئيس قسم الشئون الفنية', url: 'http://192.168.97.19:3000/tasdek_ezn_sh2on', backgroundColor: null },
+      { text: 'رئيس قسم تشغيل الحواسب', url: 'http://192.168.97.19:3000/tasdek_ezn_css', backgroundColor: null },
+      { text: 'قائد المطبعة', url: 'http://192.168.97.19:3000/tasdek_ezn_printer', backgroundColor: null },
+      { text: 'قائد الأمن', url: 'http://192.168.97.19:3000/tasdek_ezn_AMN', backgroundColor: null },
+      { text: 'رئيس قسم الجودة', url: 'http://192.168.97.19:3000/tasdek_ezn_gwd', backgroundColor: null },
+      { text: 'رئيس فرع الاحتياجات', url: 'http://192.168.97.19:3000/tasdek_ezn_need', backgroundColor: null },
+      { text: 'رئيس فرع الخزينة', url: 'http://192.168.97.19:3000/tasdek_ezn_treasur', backgroundColor: null },
+      { text: 'المكتبة', url: 'http://192.168.97.19:3000/tasdek_ezn_library', backgroundColor: null },
+      { text: 'قائد جناح اللغة العبرية', url: 'http://192.168.97.19:3000/tasdek_ezn_hebrw', backgroundColor: null },
+      { text: 'قائد جناح اللغة العربية', url: 'http://192.168.97.19:3000/tasdek_ezn_arb', backgroundColor: null },
+    ],
+    petitionTasdekLinks: [
+      { text: 'مدير معهد اللغات', url: 'http://192.168.97.19:3000/tasdek_general_petition', class: 'sub', backgroundColor: null },
+      { text: 'نائب مدير معهد اللغات', url: 'http://192.168.97.19:3000/tasdek_na2eb_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع شئون العملين المدنيين عام', url: 'http://192.168.97.19:3000/tasdek_sh2on_MD_petition', class: '', backgroundColor: '#2080bd' },
+      { text: 'رئيس فرع شئون العملين المدنيين فرع', url: 'http://192.168.97.19:3000/tasdek_sh2on_m_petition', class: '', backgroundColor: 'orange' },
+      { text: 'رئيس فرع شئون العملين المدنيين طباعة', url: 'http://192.168.97.19:3000/print_talab_petition', class: '', backgroundColor: 'orangered' },
+      { text: 'متابعة السيد المدير عام', url: 'http://192.168.97.19:3000/tasdek_secgeneral_petition', class: '', backgroundColor: '#2080bd' },
+      { text: 'متابعة السيد المدير فرع', url: 'http://192.168.97.19:3000/tasdek_M_general_petition', class: '', backgroundColor: 'orange' },
+      { text: 'رئيس فرع السكرتارية والإدارة المحلية عام', url: 'http://192.168.97.19:3000/tasdek_sh2on_sec_petition', class: '', backgroundColor: '#2080bd' },
+      { text: 'رئيس فرع السكرتارية والإدارة المحلية فرع', url: 'http://192.168.97.19:3000/tasdek_sec1_petition', class: '', backgroundColor: 'orange' },
+      { text: 'قائد مركز التعليم', url: 'http://192.168.97.19:3000/tasdek_markz_petition', class: '', backgroundColor: null },
+      { text: 'أركان حرب مبنى 1', url: 'http://192.168.97.19:3000/tasdek_arkan1_petition', class: '', backgroundColor: null },
+      { text: 'أركان حرب مبنى 3', url: 'http://192.168.97.19:3000/tasdek_arkan3_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع التخطيط', url: 'http://192.168.97.19:3000/tasdek_ta5tet_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع الترجمة العسكرية', url: 'http://192.168.97.19:3000/tasdek_targama3_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع الترجمة المدنية', url: 'http://192.168.97.19:3000/tasdek_targamaM_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع التطوير', url: 'http://192.168.97.19:3000/tasdek_tatwer_petition', class: '', backgroundColor: null },
+      { text: 'قائد مجمع الخدمات', url: 'http://192.168.97.19:3000/tasdek_mogam3_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع شئون الدارسين', url: 'http://192.168.97.19:3000/tasdek_sh2ond_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع الامتحانات', url: 'http://192.168.97.19:3000/tasdek_exam_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع الامتحانات المسائية', url: 'http://192.168.97.19:3000/tasdek_examn_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع التدريب', url: 'http://192.168.97.19:3000/tasdek_tadreb_petition', class: '', backgroundColor: null },
+      { text: 'رئيس قسم الشئون الفنية', url: 'http://192.168.97.19:3000/tasdek_sh2on_petition', class: '', backgroundColor: null },
+      { text: 'رئيس قسم تشغيل الحواسب', url: 'http://192.168.97.19:3000/tasdek_css_petition', class: '', backgroundColor: null },
+      { text: 'قائد المطبعة', url: 'http://192.168.97.19:3000/tasdek_printer_petition', class: '', backgroundColor: null },
+      { text: 'قائد الأمن', url: 'http://192.168.97.19:3000/tasdek_AMN_petition', class: '', backgroundColor: null },
+      { text: 'رئيس قسم الجودة', url: 'http://192.168.97.19:3000/tasdek_gwd_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع الاحتياجات', url: 'http://192.168.97.19:3000/tasdek_need_petition', class: '', backgroundColor: null },
+      { text: 'رئيس فرع الخزينة', url: 'http://192.168.97.19:3000/tasdek_treasur_petition', class: '', backgroundColor: null },
+      { text: 'المكتبة', url: 'http://192.168.97.19:3000/tasdek_library_petition', class: '', backgroundColor: null },
+      { text: 'قائد جناح اللغة العبرية', url: 'http://192.168.97.19:3000/tasdek_hebrw_petition', class: '', backgroundColor: null },
+      { text: 'قائد جناح اللغة العربية', url: 'http://192.168.97.19:3000/tasdek_arb_petition', class: '', backgroundColor: null }
+    ]
+  };
+  function updateSecondDropdown() {
+    const firstDropdown = document.getElementById('firstDropdown');
+    const secondDropdown = document.getElementById('secondDropdown');
+    const thirdDropdownContainer = document.getElementById('thirdDropdownContainer');
+    const thirdDropdown = document.getElementById('thirdDropdown');
+
+    // Clear previous options
+    secondDropdown.innerHTML = '<option value="" selected disabled>Select an action</option>';
+
+    if (firstDropdown.value) {
+      const categoryOptions = options[firstDropdown.value] || [];
+
+      categoryOptions.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value || option.url;
+        opt.text = option.text;
+        secondDropdown.add(opt);
+      });
+
+      secondDropdown.disabled = false;
+      thirdDropdownContainer.style.display = 'none'; // Hide the third dropdown initially
+      thirdDropdown.innerHTML = '<option value="" selected disabled>Select a sub-action</option>';
+    } else {
+      secondDropdown.disabled = true;
+    }
+  }
+
+  function updateThirdDropdown() {
+    const secondDropdown = document.getElementById('secondDropdown');
+    const thirdDropdownContainer = document.getElementById('thirdDropdownContainer');
+    const thirdDropdown = document.getElementById('thirdDropdown');
+
+    // Clear previous options
+    thirdDropdown.innerHTML = '<option value="" selected disabled>Select a sub-action</option>';
+
+    if (secondDropdown.value) {
+      if (secondDropdown.value.startsWith('http')) {
+        window.open(secondDropdown.value, '_blank');
+        thirdDropdownContainer.style.display = 'none';
+      } else {
+        const subOptions = Links[secondDropdown.value] || [];
+
+        if (subOptions.length > 0) {
+          subOptions.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option.url;
+            opt.text = option.text;
+            if (option.backgroundColor) {
+              opt.style.backgroundColor = option.backgroundColor;
+            }
+            thirdDropdown.add(opt);
+          });
+
+          thirdDropdown.disabled = false;
+          thirdDropdownContainer.style.display = 'block'; // Show the third dropdown
+        } else {
+          thirdDropdown.disabled = true;
+          thirdDropdownContainer.style.display = 'none'; // Hide the third dropdown if no sub-options are available
+        }
+      }
+    } else {
+      thirdDropdown.disabled = true;
+      thirdDropdownContainer.style.display = 'none'; // Hide the third dropdown if no option is selected
+    }
+  }
+
+  function redirectToLink() {
+    const thirdDropdown = document.getElementById('thirdDropdown');
+    const selectedOption = thirdDropdown.options[thirdDropdown.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+      window.open(selectedOption.value, '_blank');
+    }
+  }
+
+
+</script>
+{% endblock %}

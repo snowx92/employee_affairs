@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <title>Report</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS (uncomment if needed) -->
+  <!--<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">-->
+
+  <style>
+    @media print {
+      @page {
+        size: A4 portrait;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .container {
+        width: 100% !important;
+        box-sizing: border-box;
+        overflow: hidden;
+        page-break-inside: avoid;
+      }
+
+      .page-break {
+        display: none;
+      }
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Times New Roman', Times, serif;
+    }
+
+    .container {
+      width: 210mm; /* A4 width */
+      padding: 0mm 10mm;
+
+      box-sizing: border-box;
+
+    }
+
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+    }    .signature-placeholder {
+            display: inline-block;
+            width: 275px;
+            height: 50px;
+
+
+          }
+
+    #header h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    #header img {
+      width: 80px;
+    }
+
+    #date h3 {
+      font-size: 18px;
+      text-decoration: underline;
+      margin: 5px 0;
+    }
+
+    .title-section {
+      background-color: rgba(6, 114, 114, 0.221);
+      text-align: center;
+
+
+    }
+
+    .title-section h2 {
+      font-size: 16px;
+      text-decoration: underline;
+      margin: 0;
+    }
+
+    .content-section h3 {
+      font-size: 16px;
+    }
+
+    .signature {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 16px;
+      margin-left: 5%; 
+      margin-bottom: 25px;
+    }
+
+      
+    .sig_img{
+            max-width: 100px;
+            height: auto;
+          }
+
+    p {
+      border-top: 1px solid black;
+    }
+
+    table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+          }
+      
+          th, td {
+            text-align: right;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12px;
+            padding: 5px;
+            border: 1px solid #ddd;
+          }
+          .table thead th {
+    vertical-align: bottom;
+    border-bottom: 5px solid #000 !important;
+}
+.underline{
+  text-decoration: underline;
+  text-decoration-color: #000; /* Adjust color */
+  text-decoration-thickness: 2px; /* Adjust thickness */
+}
+.table-bordered td, .table-bordered th {
+    border: 2px solid #000 !important;
+}
+table  th{ 
+    border: 2px solid #000 !important;
+    vertical-align: bottom;
+
+}
+table  td{ 
+    border: 2px solid #000 !important;
+    vertical-align: bottom;
+
+}
+.font_smal h3{
+              font-size: 8px !important;
+      
+          font-weight: bold !important;
+          font-family: 'Cairo-Bold', sans-serif !important;
+          }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div class="font_smal">
+      <div class="row row-header">
+        <div class="col">
+          <h3>قســـــم شئــــــون عاملين </h3>
+        </div>
+      </div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h3>رقـــم القيـــد : ٢٠٢٣/١١/٩٠١</h3>
+        </div>
+      </div>
+    
+      <div class="row row-header">
+        <div class="col">
+          <h3><u>التـاريــــــخ : {{data.today_date}}</u></h3>
+        </div>
+      </div>
+      <div class="row row-header">
+        <div class="col">
+          <h3><u>تاريخ  تحرير الطلب : {{data.submit_date}}</u></h3>
+        </div>
+      </div>
+    </div>
+
+
+    
+    
+      <div class="row row-header" style="
+      flex-direction: column;
+      align-items: center; 
+">
+        <div class="col-md-8" style="
+        text-align: center;">
+          <h3 style="
+          text-align: center;
+       font-family: 'Cairo-Bold', sans-serif !important;">معهـد اللغـات للقــوات المسلحــة</h3>
+        </div>
+        <div class="col-md-4" style="        text-align: center;     display: flex;
+        justify-content: center;">
+          <img class="header-img" src="{{ url_for('static', filename='images/logo.png') }}" alt="My Image" style="
+          height: 80px;
+          width: 80px;">
+        </div>
+      </div>
+
+    <div class="title-section">
+      <h2>إلتــمــاس</h2>
+    </div>
+
+    <div class="content-section">
+      <h3>السيد/ مدير معهد اللغات للقوات المسلحة</h3>
+      <h3>لـــــواء/ محمـــــــد أحمــــــد البابلــــــى</h3>
+      <h3>تحية طيبة وبعد...</h3>
+      <h3>يرجى التكرم باتخاذ ما ترونة مناسباّ نحو التصديق</h3>
+      <h3>{{data.altmas_petition}}</h3>
+    </div>
+    <div>
+   
+      </div>
+    <div class="signature-section" style="margin-top: 20px;">
+
+        <h3 style=" font-size: 14px; text-align: left;">التوقيـــــــــــــع  / ( {{data.employee_name}})</h3>
+        <h3 style="font-size: 14px; text-align:left ;">الوظيفــــــة  /  {{data.employee_job_name}}</h3>
+        <h3 style="font-size: 14px; text-align: left;">الاســـــــــــــم  /  {{data.employee_name}}</h3>
+
+
+
+      </div>
+      <h3 style="text-align: center;">ولسيادتكم وافر التحية،،،</h3>
+
+
+    <p></p>
+
+
+    <table>
+      <tbody>
+          <tr>
+              <th>رأى السيد رئيس فرع الفرع</th>
+              {% if sig %}
+                  <td style="width: 50%;">لا مانع والامر مفوض لسيادتكم</td>
+              {% else %}
+              <td style="width: 50%;"></td>
+              {% endif %}
+          </tr>
+          <tr>
+              <th>رأى السيــد رئـيـــس شئون عاملين مدنين</th>
+              {% if sig %}
+                  <td style="width: 50%;">لا مانع والامر مفوض لسيادتكم</td>
+              {% else %}
+              <td style="width: 50%;"></td>
+              {% endif %}
+          </tr>
+          <tr>
+              <th>رأى السيد رئيس فرع السكرتارية والإدارة المحلية</th>
+              {% if sig %}
+                  <td style="width: 50%;">لا مانع والامر مفوض لسيادتكم</td>
+              {% else %}
+              <td style="width: 50%;"></td>
+              {% endif %}
+          </tr>
+      </tbody>
+  </table>
+
+
+    <div class="signature-section">
+      <div class="signature">
+        <h3 class="underline">رأى السيد نائب مدير معهد اللغات للقوات المسلحة</h3>
+
+        <div class="signature-placeholder">
+          <div style="display: flex; justify-content: space-between;">(  
+            {% if sig %}
+            <img src="{{ url_for('static', filename='images/na2b.png') }}" alt="Signature 2" class="img-fluid sig_img">
+            {% else %}
+            <p ></p>
+        {% endif %}
+          )
+        </div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between;" >
+
+        {% if sig %}
+        <h3>لا مانع والامر مفوض لسيادتكم</h3>
+        {% else %}
+        <h3></h3>
+    {% endif %}
+      <div class="signature" style="flex-direction: column-reverse;">
+        <h3 style="margin: 0 !important;">نائــب مديــر معهــد اللغــات للقــوات المسلحــة</h3>
+        <h3 style="margin: 0 !important;">عميـــــد / محمــــد ابراهـــــيم محمــــد ابراهـــــيم</h3>
+
+      </div>
+      </div>
+    </div>
+    <hr>
+    <div class="signature-section">
+      <div class="signature">
+        <h3 class="underline">قرار السيـد مديـر معهـد اللغـات للقـوات المسلحـة</h3>
+
+        <div class="signature-placeholder">
+          <div style="display: flex; justify-content: space-between;">(  
+            {% if sig %}
+            <img src="{{ url_for('static', filename='images/na2b.png') }}" alt="Signature 2" class="img-fluid sig_img">
+            {% else %}
+            <p ></p>
+        {% endif %}
+          )
+        </div>
+
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between;" >
+        {% if sig %}
+        <h3>تصدق</h3>
+        {% else %}
+        <h3></h3>
+    {% endif %}
+      <div class="signature"  style="flex-direction: column-reverse; " >
+    
+        <h3  style="margin: 0 !important;">مـديـــر معهــد اللغــات للقــوات المسلحــة</h3>
+        <h3 style="margin: 0 !important;">عميـــــد / تـيـسـيــر مــحــمـــــــد الــعـــطـــــار</h3>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,359 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تقيمات الظباط{% endblock %}
+
+{% block admin_content %}
+<style>
+    .paginate {
+        padding: 32px 64px;
+        display: flex;
+        justify-content: space-between;
+        background-color: #fff;
+        border-radius: 64px;
+        border: 4px solid rgb(255 222 210)
+    }
+
+    .paginate-details {
+        margin-top: 16px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .paginate button {
+        background-color: transparent;
+        border: none;
+    }
+
+    .nextBtn {
+        margin-left: 32px;
+    }
+
+    .nextBtn {
+        margin-right: 32px;
+    }
+
+    .prevBtn,
+    .nextBtn {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #2a3b52
+    }
+
+    .nextBtn-icon,
+    .prevBtn-icon {
+        display: flex;
+    }
+
+    .prevBtn svg {
+        margin-right: 6px;
+    }
+
+    .nextBtn svg {
+        margin-left: 6px;
+    }
+
+    .prevBtn svg,
+    .nextBtn svg {
+        color: #2a3b52
+    }
+
+    button[disabled].prevBtn,
+    button[disabled].nextBtn {
+        cursor: not-allowed;
+        color: rgb(156 163 175 / var(--tw-text-opacity));
+    }
+
+    .containerBtns {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .leftContainer {
+        display: flex;
+        width: 190px;
+        justify-content: end;
+    }
+
+    .rightContainer {
+        display: flex !important;
+        width: 190px !important;
+        justify-content: start !important;
+    }
+
+    .activeBtn {
+        margin: 0 12px !important;
+        padding: 4px 6px !important;
+        min-width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #D2B48C!important;
+        font-size: 20px !important;
+        color: #fff !important;
+        border-radius: 50% !important;
+        border: 4px solid #36454F!important;
+    }
+
+    .numberBtn {
+        cursor: pointer !important;
+        margin: 0 4px !important;
+        min-width: 40px !important;
+        padding: 4px !important;
+        font-size: 18px !important;
+    }
+
+    .numberBtn[disabled] {
+        cursor: not-allowed
+    }
+    /* Styling for the container holding the button and search bar */
+.d-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem; /* Adjust spacing */
+}
+
+/* Button Styling */
+.btn-success {
+    font-size: 1rem; /* Consistent font size */
+    padding: 0.75rem 1.25rem; /* Padding for better appearance */
+    border-radius: 2rem; /* Rounded corners */
+    font-family: 'Arial', sans-serif; /* Custom font family */
+}
+
+/* Search input styling */
+.searchInputWrapper {
+    position: relative;
+}
+.attendance-checkbox {
+    transform: scale(1.5); /* Change this value to increase/decrease size */
+    -webkit-transform: scale(1.5); /* For Safari support */
+    width: 20px; /* Optional: Can add width for better appearance */
+    height: 20px; /* Optional: Can add height for better appearance */
+    margin: 10px; /* Adjust margin as needed */
+  }
+
+.searchInput {
+    width: 20rem; /* Adjust width */
+    height: 2.5rem; /* Height of the input */
+    padding: 0 2.5rem 0 1rem; /* Adjust padding for icon */
+    border-radius: 2rem; /* Rounded corners */
+    border: 1px solid #ccc; /* Border for the input */
+    transition: transform 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    font-size: 1rem; /* Font size for readability */
+}
+
+.searchInput::placeholder {
+    color: #a1a1a1; /* Placeholder text color */
+}
+
+.searchInput:focus {
+    outline: none;
+    transform: scale(1.1);
+    border-color: #80bdff; /* Border color on focus */
+}
+
+.searchInputIcon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a1a1a1;
+    transition: all 0.1s ease-in-out;
+}
+
+.searchInputWrapper:focus-within .searchInputIcon {
+    right: 0.75rem; /* Adjust icon position on focus */
+}
+    
+</style>
+
+<div class="container py-5" style="max-width: 100%;">
+    <div class="jumbotron">
+        <div class="container">
+            <h1 class="display-4">
+                <span class="username">تقييم الضباط</span>
+            </h1>
+            <p class="text-center mb-4 lead">يمكنك تقييم الضباط من هنا</p>
+            <hr class="my-4">
+        </div>
+    </div>
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if employees %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button id="saveButton" class="btn btn-success">حفظ التقييمات</button>
+        <div class="searchInputWrapper">
+            <input type="text" id="searchBar" class="searchInput" placeholder="ابحث بالاسم أو الرقم التعريفي">
+            <i class="searchInputIcon fa fa-search"></i>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-striped animated-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>الرقم</th>
+                    <th>الاسم</th>
+                    <th>الفترة</th>
+                    <th>آخر تقييم</th>
+                    <th>التقييم الجديد</th>
+                    <th>الصورة</th>
+                </tr>
+            </thead>
+            <tbody id="officerTable">
+                {% for employee in employees %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ employee.name }}</td>
+                    <td>{{ employee.period }}</td>
+                    <td>{{ employee.last_rate if employee.last_rate else 'لا يوجد' }}</td>
+                    <td>
+                        <input type="number" class="form-control rate-input" 
+                               data-military-id="{{ employee.employment_id }}" 
+                               value=""
+                               min="0" max="100" step="0.1">
+                    </td>
+                    <td>
+                        {% if employee.photo %}
+                        <img src="{{ url_for('static', filename='emp_imgs/' + employee.photo) }}" alt="Photo" class="img-thumbnail" style="width: 50px; height: 50px;">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='emp_imgs/profile.png') }}" alt="Default Photo" class="img-thumbnail" style="width: 50px; height: 50px;">
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        لا يوجد لديك ضباط في الفرع الخاص بك 
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    let sortState = {};  // Keeps track of the sorting state for each column
+    
+function sortTable(columnIndex) {
+        const table = document.querySelector('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.rows);
+        let ascending = sortState[columnIndex] === 'asc' ? false : true;  // Toggle the sort state
+    
+        rows.sort((a, b) => {
+            const aText = a.cells[columnIndex].innerText.trim();
+            const bText = b.cells[columnIndex].innerText.trim();
+            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+        });
+    
+        // Update the arrow and sort state
+        updateArrows(columnIndex, ascending);
+        sortState[columnIndex] = ascending ? 'asc' : 'desc';
+    
+        // Reattach the sorted rows to the table
+        rows.forEach(row => tbody.appendChild(row));
+    }
+    
+function updateArrows(columnIndex, ascending) {
+        const allArrows = document.querySelectorAll('thead th span');  // Get all arrow spans
+        allArrows.forEach(arrow => arrow.innerText = '↕');  // Reset all arrows to default
+    
+        const arrow = document.getElementById('arrow' + columnIndex);
+        arrow.innerText = ascending ? '↑' : '↓';
+    }
+    
+document.addEventListener('DOMContentLoaded', () => {
+        const saveButton = document.getElementById('saveButton');
+        const searchBar = document.getElementById('searchBar');
+        const table = document.querySelector('table');
+        const tbody = table.querySelector('tbody');
+        let rows = Array.from(tbody.querySelectorAll('tr'));
+    
+
+        // Search functionality
+        searchBar.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            rows.forEach(row => {
+                const idCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const nameCell = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                if (idCell.includes(searchTerm) || nameCell.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    
+        // Sorting functionality (your existing code)
+        let sortState = {};
+    
+        function sortTable(columnIndex) {
+            // ... (your existing sortTable function)
+        }
+    
+        function updateArrows(columnIndex, ascending) {
+            // ... (your existing updateArrows function)
+        }
+    
+        // Add click event listeners to table headers
+        document.querySelectorAll('th[onclick^="sortTable"]').forEach(th => {
+            th.addEventListener('click', function() {
+                const columnIndex = parseInt(this.getAttribute('onclick').match(/\d+/)[0]);
+                sortTable(columnIndex);
+            });
+        });
+    });
+   
+    
+document.getElementById('saveButton').addEventListener('click', function() {
+        var rates = [];
+        document.querySelectorAll('.rate-input').forEach(function(input) {
+            rates.push({
+                employee_id: input.dataset.militaryId,
+                rate: input.value
+            });
+        });
+    
+        fetch('{{ url_for("main.employee_rates") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({rates: rates})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('تم حفظ التقييمات بنجاح');
+                location.reload();
+            } else {
+                alert('حدث خطأ أثناء حفظ التقييمات');
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حفظ التقييمات');
+        });
+    });
+</script>
+
+    {% endblock %}
