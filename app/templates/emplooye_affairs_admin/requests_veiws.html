@@ -20,6 +20,8 @@
     {% endif %}
     {% endwith %}
 
+    <!-- Toast container for dynamic notifications -->
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
 
 </div>
 
@@ -51,6 +53,67 @@
 </div>
 
 <script>
+    // Function to show toast messages (defined at the top for global access)
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '1100';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' : 
+                         type === 'error' ? 'bg-danger' : 
+                         type === 'warning' ? 'bg-warning' : 'bg-info';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong class="me-auto">إشعار</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+        
+        // Add toast to container
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Initialize and show the toast using Bootstrap
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, { 
+            autohide: true,
+            delay: 5000
+        });
+        toast.show();
+        
+        // Clean up after the toast is hidden
+        toastElement.addEventListener('hidden.bs.toast', function() {
+            toastElement.remove();
+        });
+    }
+
+    // SweetAlert Toast helper - used instead of Bootstrap Toast
+    const Toast = {
+        fire: function(options) {
+            return Swal.fire({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                ...options
+            });
+        }
+    };
+
     let refreshTimeout;
 
     function startRefreshTimer() {
@@ -100,22 +163,61 @@ function renderTable() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-        // Initial load of data with today's date by default
-        const today = new Date();
-        const formattedToday = today.toLocaleDateString('en-CA'); // Format YYYY-MM-DD
-        document.getElementById('filter_date').value = formattedToday;
-        
-        console.log(today)
-        loadRequestsData();
+    // Initial load of data with today's date by default
+    const today = new Date();
+    const formattedToday = today.toLocaleDateString('en-CA'); // Format YYYY-MM-DD
+    document.getElementById('filter_date').value = formattedToday;
     
-        // Set up event listeners for filters
-        const filters = document.querySelectorAll('.filter-control');
-        filters.forEach(filter => {
-            filter.addEventListener('change', loadRequestsData);
-        });
-    
+    console.log(today);
+    loadRequestsData();
 
+    // Set up event listeners for filters
+    const filters = document.querySelectorAll('.filter-control');
+    filters.forEach(filter => {
+        filter.addEventListener('change', loadRequestsData);
     });
+    
+    // Add a click event listener for edit cell buttons
+    document.addEventListener('click', function(e) {
+        const editButton = e.target.closest('.edit-cell-btn');
+        if (editButton) {
+            e.preventDefault();
+            const category = editButton.dataset.category;
+            editCell(editButton, category);
+        }
+    });
+    
+    // Check if Bootstrap is loaded
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded. Including fallback implementation for toasts.');
+        // Define a fallback implementation if Bootstrap is not available
+        window.bootstrap = {
+            Toast: function(element, options) {
+                this.element = element;
+                this.options = options || { autohide: true, delay: 5000 };
+                
+                this.show = function() {
+                    element.classList.add('show');
+                    element.style.display = 'block';
+                    
+                    if (this.options.autohide) {
+                        setTimeout(() => {
+                            this.hide();
+                        }, this.options.delay);
+                    }
+                };
+                
+                this.hide = function() {
+                    element.classList.remove('show');
+                    setTimeout(() => {
+                        element.style.display = 'none';
+                        element.dispatchEvent(new CustomEvent('hidden.bs.toast'));
+                    }, 300);
+                };
+            }
+        };
+    }
+});
     
  function loadRequestsData() {
         const loadingIndicator = document.getElementById('loading-indicator');
@@ -166,8 +268,8 @@ function initializeTableData(apiData) {
     });
 }
 
-function updateRequestStatus(approvalId, newStatus ,stage) {
-    console.log('Updating request status:', { approvalId, newStatus  ,stage});
+function updateRequestStatus(approvalId, newStatus, stage) {
+    console.log('Updating request status:', { approvalId, newStatus, stage });
     approvalId = approvalId.toString();
 
     try {
@@ -176,14 +278,14 @@ function updateRequestStatus(approvalId, newStatus ,stage) {
             console.error('Item not found in tableData:', approvalId);
             return;
         }
-        console.log(item)
-        // Update status in tableData'
-        if (stage =='president_approval_status'){
-            console.log("last stage")
+        console.log(item);
+        
+        // Update status in tableData
+        if (stage == 'president_approval_status') {
+            console.log("last stage");
             item.data.approval_status = newStatus;
-            
         }
-        if (newStatus == 'Rejected'){
+        if (newStatus == 'Rejected') {
             item.data.approval_status = newStatus;
         }
         item[stage] = newStatus;
@@ -192,59 +294,106 @@ function updateRequestStatus(approvalId, newStatus ,stage) {
         // Find and update the specific table row
         const category = item.category;
         const tableBody = document.querySelector(`#collapse${category} tbody`);
-        console.log("tableBody" , tableBody)
+        console.log("tableBody", tableBody);
         if (!tableBody) {
             console.error('Table body not found for category:', category);
             return;
         }
 
-// Find the rows with this approval_id
-const rows = tableBody.querySelectorAll(`tr[data-approval-id="${approvalId}"]`);
-console.log("tableBody", tableBody);
-console.log("rows", rows);
-console.log(rows.length);
+        // Find the rows with this approval_id
+        const rows = tableBody.querySelectorAll(`tr[data-approval-id="${approvalId}"]`);
+        console.log("rows", rows);
+        console.log(rows.length);
 
-if (rows.length) {
-    // Generate new row HTML
-    const indexs = Array.from(tableData.entries()).findIndex(([id]) => id === approvalId) + 1;
-    console.log('indexs', indexs);
-    const newRowHtml = generateTableRow(category, item, indexs);
-    console.log("Generated HTML:", newRowHtml); // Debug the generated HTML
-    
-    // Create temporary container and properly wrap the HTML
-    const temp = document.createElement('tbody');
-    temp.innerHTML = newRowHtml;
-    
-    console.log("Temporary container contents:", temp.innerHTML);
-    const newRows = temp.getElementsByTagName('tr');
-    console.log("New rows:", newRows);
-    
-    // Only proceed with replacement if we have new rows
-    if (newRows.length > 0) {
-        // Replace the rows
-        if (newRows[0]) {
-            rows[0].replaceWith(newRows[0].cloneNode(true));
-        }
-        
-        if (rows[1] && newRows[1]) {
-            rows[1].replaceWith(newRows[1].cloneNode(true));
-        }
+        if (rows.length) {
+            // Generate new row HTML
+            const indexs = Array.from(tableData.entries()).findIndex(([id]) => id === approvalId) + 1;
+            console.log('indexs', indexs);
+            const newRowHtml = generateTableRow(category, item, indexs);
+            console.log("Generated HTML:", newRowHtml);
+            
+            // Create temporary container and properly wrap the HTML
+            const temp = document.createElement('tbody');
+            temp.innerHTML = newRowHtml;
+            
+            console.log("Temporary container contents:", temp.innerHTML);
+            const newRows = temp.getElementsByTagName('tr');
+            console.log("New rows:", newRows);
+            
+            // Only proceed with replacement if we have new rows
+            if (newRows.length > 0) {
+                // Replace the rows
+                if (newRows[0]) {
+                    rows[0].replaceWith(newRows[0].cloneNode(true));
+                }
+                
+                if (rows.length > 1 && newRows.length > 1) {
+                    rows[1].replaceWith(newRows[1].cloneNode(true));
+                }
 
-        // Add highlight animation to the newly replaced row
-        const updatedRow = tableBody.querySelector(`tr[data-approval-id="${approvalId}"]`);
-        if (updatedRow) {
-            updatedRow.classList.add('row-updated');
-            setTimeout(() => updatedRow.classList.remove('row-updated'), 1000);
-        }
+                // Add highlight animation to the newly replaced row
+                const updatedRow = tableBody.querySelector(`tr[data-approval-id="${approvalId}"]`);
+                if (updatedRow) {
+                    updatedRow.classList.add('row-updated');
+                    setTimeout(() => updatedRow.classList.remove('row-updated'), 1000);
+                }
 
-        console.log('Row updated successfully');
-    } else {
-        console.error('No new rows were generated from the HTML');
-    }
-}
+                console.log('Row updated successfully');
+                
+                // Update the progress indicators in the UI
+                updateApprovalProgressUI(approvalId, stage, newStatus);
+            } else {
+                console.error('No new rows were generated from the HTML');
+            }
+        }
     } catch (error) {
         console.error('Error updating request status:', error);
     }
+}
+
+// New function to update approval progress UI without needing to regenerate the entire row
+function updateApprovalProgressUI(approvalId, stage, newStatus) {
+    console.log('Updating progress UI for:', { approvalId, stage, newStatus });
+    
+    // Find the milestone for this stage
+    const progressWrapper = document.querySelector(`tr[data-approval-id="${approvalId}"] .progress-wrapper`);
+    if (!progressWrapper) return;
+    
+    // Find the specific milestone for this stage
+    const milestone = progressWrapper.querySelector(`.milestone-container .milestone[title*="${getMilestoneLabel(stage)}"]`);
+    if (!milestone) return;
+    
+    // Update milestone classes based on status
+    milestone.classList.remove('approved', 'rejected', 'pending');
+    milestone.classList.add(newStatus.toLowerCase());
+    
+    // Update the icon
+    const iconElement = milestone.querySelector('.milestone-icon');
+    if (iconElement) {
+        iconElement.innerHTML = getStatusIcon(newStatus);
+    }
+    
+    // Update connectors if needed
+    if (newStatus === 'Approved') {
+        const connector = milestone.parentElement.querySelector('.connector');
+        if (connector) {
+            connector.classList.add('active');
+        }
+    }
+}
+
+// Helper function to get milestone label from stage key
+function getMilestoneLabel(stage) {
+    const stageLabels = {
+        'office_manager_approval_status': 'رئيس الفرع',
+        'employee_affairs_approval_status': 'شئون العاملين المدنيين',
+        'secretary_approval_status': 'السكرتارية',
+        'vice_president_approval_status': 'نائب المدير',
+        'president_follower_approval_status': 'متابعة المدير',
+        'president_approval_status': 'المدير'
+    };
+    
+    return stageLabels[stage] || stage;
 }
 
 function updateAccordion(data) {
@@ -325,7 +474,7 @@ function getTableHeaders(category) {
         const specificHeaders = {
             'clinic': ['التاريخ', 'وقت الخروج', 'وقت العودة', 'التشخيص', 'نوع العيادة'],
             'agaza': ['من تاريخ', 'إلى تاريخ', 'نوع الاجازة', 'البديل', 'ملاحظات' , 'ملاحظات السيد المدير'],
-            'ezn': ['وقت الخروج', 'وقت العودة', 'موعد الخروج', 'موعد الرجوع'],
+            'ezn': ['وقت الخروج', 'وقت العودة', 'موعد الخروج', 'موعد الرجوع', "تاريخ الاذن",],
             'altmas': ['الالتماس'],
             'momrya': [ 'سبب المأمورية', 'من تاريخ', 'إلى تاريخ' , 'وقت الخروج', 'وقت العودة']
         };
@@ -420,11 +569,11 @@ function generateTableRow(category, item, index) {
                     ${generateEditButton(data, category, 'from_date')}
                 </td>
                 <td>
-                    <span class="cell-value">${displayValue(data.to_date)}</span>
+                    <span class="cell-value ${userType === 'admin' && userOffice === 'تشغيل الحواسب' ? 'editable-to-date' : ''}">${displayValue(data.to_date)}</span>
                     ${canEditField(data, category, 'to_date') ? `
                         <input type="date" value="${data.to_date}" class="editable" data-field="to_date" style="display:none;" />
                     ` : ''}
-                    ${generateEditButton(data, category, 'to_date')}
+                    ${generateToDateEditButton(data, category)}
                 </td>
                 <td>${displayValue(data.type)}</td>
 
@@ -482,6 +631,7 @@ function generateTableRow(category, item, index) {
                     ` : ''}
                     ${generateEditButton(data, category, 'back_time')}
                 </td>
+                                    <td>${displayValue(data.date)}</td>
                 `;
                 break; 
             case 'momrya':
@@ -680,16 +830,33 @@ function generateMinuteOptions(currentTime) {
 }
 
 // Function to handle saving editable cell changes
-function editCell(button , cate) {
+function editCell(button, cate) {
     const cell = button.parentElement;
     const displaySpan = cell.querySelector('.cell-value');
     const editableElement = cell.querySelector('.editable');
+    
+    if (!editableElement) {
+        console.error('Editable element not found in cell:', cell);
+        return;
+    }
     
     if (editableElement.style.display === 'none') {
         // Show editable element
         displaySpan.style.display = 'none';
         editableElement.style.display = '';
         button.innerHTML = '<i class="fa-solid fa-check"></i>';
+        
+        // If this is a to_date edit for agaza, show the points information
+        if (editableElement.dataset.field === 'to_date' && cate === 'agaza') {
+            const row = button.closest('tr');
+            const approvalId = row.dataset.approvalId;
+            const item = tableData.get(approvalId);
+            
+            if (item && (item.data.type === 'أعتيادية' || item.data.type === 'عارضة')) {
+                // Get employee balance
+                fetchEmployeeBalance(item.data.employee_id, item.data.type, editableElement);
+            }
+        }
     } else {
         // Save changes
         let newValue;
@@ -702,14 +869,32 @@ function editCell(button , cate) {
             const hourSelect = editableElement.querySelector('.hour-select');
             const minuteSelect = editableElement.querySelector('.minute-select');
             
+            // Ensure we have both selects
+            if (!hourSelect || !minuteSelect) {
+                console.error('Hour or minute select not found for time field:', field);
+                return;
+            }
+            
             // Pad single-digit hours and minutes with leading zeros
-            const hour = hourSelect.value.padStart(2, '0');
-            const minute = minuteSelect.value.padStart(2, '0');
+            const hour = hourSelect.value.toString().padStart(2, '0');
+            const minute = minuteSelect.value.toString().padStart(2, '0');
             
             // Format the time as "HH:MM"
             newValue = `${hour}:${minute}`;
         } else {
             newValue = editableElement.value;
+        }
+        
+        // Special logging for to_date field
+        if (field === 'to_date' && cate === 'agaza') {
+            console.log(`Editing agaza to_date: ${displaySpan.textContent} -> ${newValue}`);
+            console.log(`User type: ${userType}, User office: ${userOffice}`);
+        }
+        
+        // Remove any balance tooltip if it exists
+        const balanceTooltip = document.getElementById('points-balance-tooltip');
+        if (balanceTooltip) {
+            balanceTooltip.remove();
         }
         
         // Update display and hide editable element
@@ -719,19 +904,121 @@ function editCell(button , cate) {
         button.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
         
         // Send update to server
-        saveChange(field, newValue, row ,cate);
+        saveChange(field, newValue, row, cate);
     }
 }
 
+// Function to fetch and display employee balance
+function fetchEmployeeBalance(employeeId, agazaType, editElement) {
+    fetch(`/api/employee_info/${employeeId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Create tooltip to show balance
+            const tooltipDiv = document.createElement('div');
+            tooltipDiv.id = 'points-balance-tooltip';
+            tooltipDiv.className = 'points-balance-tooltip';
+            
+            let pointsBalance;
+            let pointsType;
+            
+            if (agazaType === 'أعتيادية') {
+                pointsBalance = data.sanwya_points;
+                pointsType = 'اعتيادية';
+            } else if (agazaType === 'عارضة') {
+                pointsBalance = data.arda_points;
+                pointsType = 'عارضة';
+            } else {
+                return; // No points to display for other types
+            }
+            
+            tooltipDiv.innerHTML = `
+                <div class="tooltip-content">
+                    <span class="employee-name">${data.name}</span>
+                    <span class="balance-label">رصيد الإجازات ${pointsType}:</span>
+                    <span class="balance-value">${pointsBalance} يوم</span>
+                </div>
+            `;
+            
+            // Position tooltip near the edit element
+            const rect = editElement.getBoundingClientRect();
+            tooltipDiv.style.position = 'absolute';
+            tooltipDiv.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            tooltipDiv.style.left = `${rect.left + window.scrollX}px`;
+            
+            // Add to document
+            document.body.appendChild(tooltipDiv);
+            
+            // Remove tooltip when clicked elsewhere
+            document.addEventListener('click', function removeTooltip(e) {
+                if (e.target !== tooltipDiv && !tooltipDiv.contains(e.target) && 
+                    e.target !== editElement && !editElement.contains(e.target)) {
+                    tooltipDiv.remove();
+                    document.removeEventListener('click', removeTooltip);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching employee data:', error);
+        });
+}
+
 // Function to save changes to the server
-function saveChange(field, value, row ,cate) {
-    const requestType = cate; // Make sure to add data-category to your table
+function saveChange(field, value, row, cate) {
+    const requestType = cate;
     const requestId = row.dataset.approvalId;
     
     const data = {
         field: field,
         value: value
     };
+
+    // Special handling for agaza to_date updates
+    const isAgazaToDateUpdate = (field === 'to_date' && cate === 'agaza');
+    if (isAgazaToDateUpdate) {
+        // Get the item from tableData
+        const item = tableData.get(requestId.toString());
+        if (item) {
+            const oldDate = new Date(item.data.to_date);
+            const newDate = new Date(value);
+            
+            // Calculate days difference
+            const dayDifference = Math.round((newDate - oldDate) / (1000 * 60 * 60 * 24));
+            
+            // If extending the agaza (positive difference), confirm with the user about deducting points
+            if (dayDifference > 0 && (item.data.type === 'أعتيادية' || item.data.type === 'عارضة')) {
+                const pointType = item.data.type === 'أعتيادية' ? 'الإعتيادية' : 'العارضة';
+                const confirmMessage = `سيتم خصم ${dayDifference} أيام من رصيد الإجازات ${pointType} للموظف. هل أنت متأكد؟`;
+                
+                if (!confirm(confirmMessage)) {
+                    // User canceled, revert the display
+                    const cell = row.querySelector(`[data-field="${field}"]`).parentElement;
+                    const displaySpan = cell.querySelector('.cell-value');
+                    displaySpan.textContent = item.data.to_date;
+                    return;
+                }
+            } 
+            // If shortening the agaza (negative difference), inform the user about adding points back
+            else if (dayDifference < 0 && (item.data.type === 'أعتيادية' || item.data.type === 'عارضة')) {
+                const pointType = item.data.type === 'أعتيادية' ? 'الإعتيادية' : 'العارضة';
+                const confirmMessage = `سيتم إضافة ${Math.abs(dayDifference)} أيام إلى رصيد الإجازات ${pointType} للموظف نتيجة تقصير فترة الإجازة. هل أنت متأكد؟`;
+                
+                if (!confirm(confirmMessage)) {
+                    // User canceled, revert the display
+                    const cell = row.querySelector(`[data-field="${field}"]`).parentElement;
+                    const displaySpan = cell.querySelector('.cell-value');
+                    displaySpan.textContent = item.data.to_date;
+                    return;
+                }
+            }
+            
+            console.log(`Sending agaza to_date update: ${value} for request ID: ${requestId} (difference: ${dayDifference} days)`);
+        }
+    }
 
     fetch(`/api/update_request/${requestType}/${requestId}`, {
         method: 'POST',
@@ -740,21 +1027,77 @@ function saveChange(field, value, row ,cate) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || `Server responded with status: ${response.status}`);
+            }).catch(error => {
+                // Handle case where response is not valid JSON
+                throw new Error(`Server responded with status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            // Show success notification
-            showToast('تم التحديث' ,'success' );
+            if (isAgazaToDateUpdate) {
+                console.log('Successfully updated agaza to_date');
+                
+                // Update the tableData with the new to_date
+                const item = tableData.get(requestId.toString());
+                if (item) {
+                    const oldDate = new Date(item.data.to_date);
+                    const newDate = new Date(value);
+                    
+                    // Calculate days difference
+                    const dayDifference = Math.round((newDate - oldDate) / (1000 * 60 * 60 * 24));
+                    
+                    // Update the stored to_date
+                    item.data.to_date = value;
+                    
+                    // Show appropriate toast message based on whether we extended or shortened the leave
+                    if (dayDifference > 0 && (item.data.type === 'أعتيادية' || item.data.type === 'عارضة')) {
+                        const pointType = item.data.type === 'أعتيادية' ? 'الإعتيادية' : 'العارضة';
+                        showToast(`تم تمديد الإجازة وخصم ${dayDifference} أيام من رصيد الإجازات ${pointType}`, 'info');
+                    } else if (dayDifference < 0 && (item.data.type === 'أعتيادية' || item.data.type === 'عارضة')) {
+                        const pointType = item.data.type === 'أعتيادية' ? 'الإعتيادية' : 'العارضة';
+                        showToast(`تم تقصير الإجازة وإضافة ${Math.abs(dayDifference)} أيام إلى رصيد الإجازات ${pointType}`, 'info');
+                    } else {
+                        showToast('تم التحديث بنجاح', 'success');
+                    }
+                } else {
+                    showToast('تم التحديث بنجاح', 'success');
+                }
+            } else {
+                showToast('تم التحديث بنجاح', 'success');
+            }
         } else {
-            // Show success notification
-            showToast('فشل النحديث' ,'error' );
-
+            console.error('Update failed:', data.error);
+            // Roll back the display to show the original value
+            if (isAgazaToDateUpdate) {
+                const item = tableData.get(requestId.toString());
+                if (item) {
+                    const cell = row.querySelector(`[data-field="${field}"]`).parentElement;
+                    const displaySpan = cell.querySelector('.cell-value');
+                    displaySpan.textContent = item.data.to_date;
+                }
+            }
+            showToast(`فشل التحديث: ${data.error || 'خطأ غير معروف'}`, 'error');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        showToast('فشل النحديث' ,'error' );
-
+        console.error('Error updating field:', error);
+        console.error('Error updating agaza date:', error);
+        // Roll back the display to show the original value
+        if (isAgazaToDateUpdate) {
+            const item = tableData.get(requestId.toString());
+            if (item) {
+                const cell = row.querySelector(`[data-field="${field}"]`).parentElement;
+                const displaySpan = cell.querySelector('.cell-value');
+                displaySpan.textContent = item.data.to_date;
+            }
+        }
+        showToast(`فشل التحديث: ${error.message}`, 'error');
     });
 }
 
@@ -767,6 +1110,8 @@ function formatTime(timeStr) {
 document.addEventListener('click', function(event) {
     const target = event.target.closest('button[data-action]');
     if (!target) return;
+
+    event.preventDefault(); // Prevent any default actions or form submissions
 
     console.log('Action button clicked:', {
         action: target.getAttribute('data-action'),
@@ -788,9 +1133,7 @@ document.addEventListener('click', function(event) {
                 break;
             case 'delete':
                 console.log('Sending delete request:', approvalId);
-                if (confirm('Are you sure you want to delete this request?')) {
-                    deleteRequest(approvalId);
-                }
+                deleteRequest(approvalId);
                 break;
             case 'print':
                 console.log('Handling print request:', approvalId);
@@ -825,7 +1168,7 @@ async function sendRequestAction(data) {
             case 'approve':
                 console.log('Processing approve action:', result);
                 updateRequestStatus(result.approval_id, 'Approved', result.stage);
-                showToast(result.message, 'success');
+                // Remove toast notification for approvals
                 break;
             case 'reject':
                 console.log('Processing reject action:', result);
@@ -835,7 +1178,15 @@ async function sendRequestAction(data) {
             case 'delete':
                 console.log('Processing delete action:', result);
                 removeRequestFromUI(result.approval_id);
-                showToast(result.message, 'error');
+                
+                // Check if points were returned (use server response)
+                if (result.points_returned) {
+                    // Use server's message directly
+                    showToast(result.message, 'success');
+                } else {
+                    // For other requests or non-approved agaza, show the default message
+                    showToast('تم حذف الطلب بنجاح', 'success');
+                }
                 break;
             default:
                 console.error('Unknown action type:', result.action_type);
@@ -867,6 +1218,31 @@ async function rejectRequest(approvalId) {
 }
 
 async function deleteRequest(approvalId) {
+    // Get the item from tableData to check if it's an agaza
+    const item = tableData.get(approvalId.toString());
+    let confirmMessage = 'Are you sure you want to delete this request?';
+    
+    // Special message for agaza requests
+    if (item && item.category === 'agaza') {
+        if (item.data.approval_status === 'Approved') {
+            // Calculate days duration
+            const fromDate = new Date(item.data.from_date);
+            const toDate = new Date(item.data.to_date);
+            const dayDifference = Math.round((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            const pointType = item.data.type === 'أعتيادية' || item.data.type === 'اجازة بدل انصراف' ? 
+                'الإعتيادية' : 'العارضة';
+            
+            confirmMessage = `سيتم حذف طلب الإجازة وإعادة ${dayDifference} أيام إلى رصيد الإجازات ${pointType} للموظف. هل أنت متأكد؟`;
+        } else {
+            confirmMessage = 'هل أنت متأكد من حذف طلب الإجازة هذا؟';
+        }
+    }
+    
+    if (!confirm(confirmMessage)) {
+        return; // User canceled
+    }
+    
     const data = {
         approval_id: approvalId,
         action_type: 'delete'
@@ -875,7 +1251,75 @@ async function deleteRequest(approvalId) {
 }
 
 
-function printRequest(report_type, request_id, employee_id) {
+function printRequest(approvalId) {
+    // Retrieve the item from tableData
+    const item = tableData.get(approvalId.toString());
+    if (!item) {
+        console.error('Item not found for printing:', approvalId);
+        alert('خطأ في الطباعة: الطلب غير موجود');
+        return;
+    }
+
+    // Extract the necessary information from the item
+    const report_type = item.category;
+    const request_id = item.id || item.approval_id;
+    
+    // Fix for employee_id - ensure we have a valid employee_id from the item data
+    let employee_id = null;
+    if (item.data && item.data.employee_id) {
+        employee_id = item.data.employee_id;
+    } else if (item.employee_id) {
+        employee_id = item.employee_id;
+    }
+    
+    // Additional debugging to verify employee data structure
+    console.log('Full item data:', item);
+    
+    if (!report_type || !request_id) {
+        console.error('Missing report_type or request_id for printing:', { report_type, request_id });
+        alert('خطأ في الطباعة: بيانات غير مكتملة (نوع التقرير أو رقم الطلب)');
+        return;
+    }
+    
+    if (!employee_id) {
+        console.error('Missing employee_id for printing, trying to find it from other sources:', item);
+        
+        // Try to find employee_id from alternative locations in the data structure
+        if (item.data && item.data.employee_name) {
+            // Query the backend to get employee_id by name
+            fetch(`/api/get_employee_id_by_name?name=${encodeURIComponent(item.data.employee_name)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.employee_id) {
+                        console.log('Retrieved employee_id by name:', data.employee_id);
+                        performPrintRequest(report_type, request_id, data.employee_id);
+                    } else {
+                        alert('لا يمكن العثور على معرف الموظف');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting employee ID by name:', error);
+                    alert('خطأ في الحصول على معرف الموظف');
+                });
+            return;
+        }
+        
+        alert('خطأ في الطباعة: لا يمكن العثور على معرف الموظف');
+        return;
+    }
+    
+    performPrintRequest(report_type, request_id, employee_id);
+}
+
+// Separate function to perform the actual print request
+function performPrintRequest(report_type, request_id, employee_id) {
+    // Display a simple loading message
+    const loadingMessage = document.createElement('div');
+    loadingMessage.id = 'print-loading-message';
+    loadingMessage.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border:1px solid #ccc;border-radius:5px;z-index:9999;';
+    loadingMessage.innerHTML = '<div style="text-align:center;"><div style="margin-bottom:10px;">جاري إعداد التقرير...</div><div class="spinner-border text-primary" role="status"></div></div>';
+    document.body.appendChild(loadingMessage);
+
     // Create a hidden iframe if it doesn't already exist
     let printFrame = document.getElementById('printFrame');
     if (!printFrame) {
@@ -884,6 +1328,9 @@ function printRequest(report_type, request_id, employee_id) {
         printFrame.style.display = 'none';
         document.body.appendChild(printFrame);
     }
+
+    // Log the data we're sending for debugging
+    console.log('Sending print request with data:', { report_type, request_id, employee_id });
 
     fetch('/generate_print_report', {
         method: 'POST',
@@ -898,11 +1345,16 @@ function printRequest(report_type, request_id, employee_id) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error("Failed to generate report");
+            return response.text().then(text => {
+                throw new Error(text || "فشل في إنشاء التقرير");
+            });
         }
         return response.text();
     })
     .then(reportHtml => {
+        // Remove loading message
+        document.getElementById('print-loading-message').remove();
+        
         const iframeDoc = printFrame.contentDocument || printFrame.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(reportHtml);
@@ -932,14 +1384,22 @@ function printRequest(report_type, request_id, employee_id) {
             })
             .catch(error => {
                 console.error('Error loading images:', error);
-                alert('Error loading images. Please try again.');
+                alert('خطأ في تحميل الصور');
             });
     })
     .catch(error => {
+        // Remove loading message
+        if (document.getElementById('print-loading-message')) {
+            document.getElementById('print-loading-message').remove();
+        }
+        
         console.error('Error:', error);
-        alert('Error generating report. Please try again.');
+        alert(error.message || 'خطأ في إنشاء التقرير، يرجى المحاولة مرة أخرى');
     });
 }
+
+
+
 function removeRequestFromUI(approvalId) {
     if (tableData.delete(approvalId)) {
         const rows = document.querySelectorAll(`tr[data-approval-id="${approvalId}"]`);
@@ -949,27 +1409,11 @@ function removeRequestFromUI(approvalId) {
         });
     }
 }
-function showToast(message, type = 'info') {
-    // You can use any toast library here, this is a simple example
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }, 100);
-}
 
-
-function showActionButtons(item  , category) {
+function showActionButtons(item, category) {
 
     // Base action buttons template
-    const printButton = `<button class="btn btn-primary btn-sm" onclick="printRequest('${item.req_type}', '${item.id}', '${item.employee_id}')"><i class="fa-solid fa-print"></i></button>`;
+    const printButton = `<button class="btn btn-primary btn-sm" data-action="print" data-id="${item.approval_id}"><i class="fa-solid fa-print"></i></button>`;
     const approveRejectButtons = `
         <button class="btn btn-success green btn-sm" data-action="approve" data-id="${item.approval_id}"><i class="fa-solid fa-file-signature"></i></button>
         <button class="btn btn-danger btn-sm" data-action="reject" data-id="${item.approval_id}"><i class="fa-solid fa-xmark"></i></button>
@@ -986,17 +1430,24 @@ function showActionButtons(item  , category) {
         (userType === 'admin' || userType === 'manager') ) {
         showPrint = true;
     }
-    if(category == 'momrya' && (userType === 'admin' || userType === 'manager' || 'attendence')){
+    
+    // Special condition for تشغيل الحواسب admins - they can delete ANY request regardless of status
+    if (userType === 'admin' && userOffice === 'تشغيل الحواسب') {
         showDelete = true;
     }
-    if(category != 'agaza' && userType === 'admin' ){
+    // Other delete conditions
+    else if(category == 'momrya' && (userType === 'admin' || userType === 'manager' || 'attendence')){
         showDelete = true;
     }
-    // Delete button conditions
-    if (item.data.approval_status === 'Pending' && 
+    else if(category != 'agaza' && userType === 'admin' ){
+        showDelete = true;
+    }
+    // Regular delete button conditions
+    else if (item.data.approval_status === 'Pending' && 
         item.vice_president_approval_status !== 'Approved') {
         showDelete = true;
     }
+    
     if(category == 'clinic' && (userType === 'admin' || userType === 'manager')){
         showPrint = true;
     }
@@ -1085,7 +1536,20 @@ function canEditField(data, category, fieldName) {
     // Handle fields for agaza category
     if (category === 'agaza') {
         // Handle date fields
-        if (fieldName === 'from_date' || fieldName === 'to_date') {
+        if (fieldName === 'from_date') {
+            return userType === 'admin' && 
+                   userOffice === 'المدير' && 
+                   data.president_approval_status === 'Pending' && 
+                   data.president_follower_approval_status === 'Approved' && 
+                   data.approval_status === "Pending";
+        }
+        
+        // Special permission for تشغيل الحواسب to edit to_date even after approval
+        if (fieldName === 'to_date') {
+            if (userType === 'admin' && userOffice === 'تشغيل الحواسب') {
+                return true; // Allow editing to_date regardless of approval status
+            }
+            
             return userType === 'admin' && 
                    userOffice === 'المدير' && 
                    data.president_approval_status === 'Pending' && 
@@ -1115,17 +1579,29 @@ function canEditField(data, category, fieldName) {
 // Function to generate edit button HTML based on permissions
 function generateEditButton(data, category, fieldName) {
     if (canEditField(data, category, fieldName)) {
-        return `<button class="btn btn-primary" onclick="editCell(this, '${category}')">
+        return `<button class="btn btn-primary edit-cell-btn" data-category="${category}" data-field="${fieldName}">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>`;
     }
     return ''; // Return empty string if edit not allowed
 }
+
+// Special function for to_date edit button with extra styling
+function generateToDateEditButton(data, category) {
+    if (canEditField(data, category, 'to_date')) {
+        const extraClass = (userType === 'admin' && userOffice === 'تشغيل الحواسب') ? 'to-date-edit-button' : '';
+        return `<button class="btn btn-primary ${extraClass} edit-cell-btn" data-category="${category}" data-field="to_date">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>`;
+    }
+    return ''; // Return empty string if edit not allowed
+}
+
 // Add some CSS for animations
 const style = document.createElement('style');
 style.textContent = `
     .row-updated {
-        animation: highlight 1s ease-out;
+        animation: highlight 1.5s ease-out;
     }
     
     .row-removing {
@@ -1133,7 +1609,8 @@ style.textContent = `
     }
     
     @keyframes highlight {
-        0% { background-color: rgba(255, 255, 0, 0.2); }
+        0% { background-color: rgba(255, 255, 0, 0.5); }
+        50% { background-color: rgba(255, 255, 0, 0.7); }
         100% { background-color: transparent; }
     }
     
@@ -1160,8 +1637,109 @@ style.textContent = `
     .toast-success { background-color: #4caf50; color: white; }
     .toast-error { background-color: #f44336; color: white; }
     .toast-info { background-color: #2196f3; color: white; }
+    
+    /* Enhanced milestone animation */
+    .milestone.active .milestone-icon {
+        animation: pulse-milestone 2s infinite;
+    }
+    
+    @keyframes pulse-milestone {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+    }
 `;
 document.head.appendChild(style);
+
+// Initialize Bootstrap Toast support
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if Bootstrap is loaded
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded. Including fallback implementation for toasts.');
+        // Define a fallback implementation if Bootstrap is not available
+        window.bootstrap = {
+            Toast: function(element, options) {
+                this.element = element;
+                this.options = options || { autohide: true, delay: 5000 };
+                
+                this.show = function() {
+                    element.classList.add('show');
+                    element.style.display = 'block';
+                    
+                    if (this.options.autohide) {
+                        setTimeout(() => {
+                            this.hide();
+                        }, this.options.delay);
+                    }
+                };
+                
+                this.hide = function() {
+                    element.classList.remove('show');
+                    setTimeout(() => {
+                        element.style.display = 'none';
+                        element.dispatchEvent(new CustomEvent('hidden.bs.toast'));
+                    }, 300);
+                };
+            }
+        };
+        
+        // Add basic toast styling if missing
+        if (!document.getElementById('toast-fallback-styles')) {
+            const style = document.createElement('style');
+            style.id = 'toast-fallback-styles';
+            style.textContent = `
+                .toast {
+                    position: relative;
+                    min-width: 300px;
+                    margin-bottom: 0.5rem;
+                    border-radius: 0.25rem;
+                    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+                    backdrop-filter: blur(10px);
+                    opacity: 0;
+                    display: none;
+                    transition: opacity 0.3s ease-in-out;
+                }
+                .toast.show {
+                    opacity: 1;
+                }
+                .toast-header {
+                    display: flex;
+                    align-items: center;
+                    padding: 0.5rem 0.75rem;
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                }
+                .toast-body {
+                    padding: 0.75rem;
+                }
+                .me-auto {
+                    margin-right: auto !important;
+                }
+                .bg-success {
+                    background-color: #28a745 !important;
+                }
+                .bg-danger {
+                    background-color: #dc3545 !important;
+                }
+                .bg-warning {
+                    background-color: #ffc107 !important;
+                }
+                .bg-info {
+                    background-color: #17a2b8 !important;
+                }
+                .text-white {
+                    color: white !important;
+                }
+                .btn-close {
+                    padding: 0.25rem;
+                    background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/0.75rem auto no-repeat;
+                    border: 0;
+                    cursor: pointer;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+});
 
 </script>
 
@@ -1192,6 +1770,44 @@ document.head.appendChild(style);
         animation: fadeIn 2s ease-in-out forwards;
     }
     
+    /* Points balance tooltip styles */
+    .points-balance-tooltip {
+        position: absolute;
+        background-color: #f8f9fa;
+        border: 2px solid #007bff;
+        border-radius: 6px;
+        padding: 10px 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        min-width: 200px;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .points-balance-tooltip .tooltip-content {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .points-balance-tooltip .employee-name {
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .points-balance-tooltip .balance-label {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .points-balance-tooltip .balance-value {
+        font-weight: bold;
+        color: #007bff;
+        font-size: 16px;
+    }
+    
     @keyframes fadeIn {
         0% {
             opacity: 0;
@@ -1218,6 +1834,44 @@ document.head.appendChild(style);
     .rejectedd {
         background-color: rgba(255, 0, 0, 0.2) !important;
         /* Red with transparency */
+    }
+
+    /* Special highlight for editable to_date field */
+    .editable-to-date {
+        border: 2px dashed #007bff;
+        padding: 6px 10px;
+        border-radius: 4px;
+        background-color: rgba(0, 123, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .editable-to-date:hover {
+        background-color: rgba(0, 123, 255, 0.2);
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+    }
+    
+    /* Highlight the button for editable to_date */
+    .to-date-edit-button {
+        position: relative;
+    }
+    
+    .to-date-edit-button::after {
+        content: '✏️';
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background-color: #fff;
+        border-radius: 50%;
+        padding: 2px;
+        font-size: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        animation: pulse-edit 2s infinite;
+    }
+    
+    @keyframes pulse-edit {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
     }
 
     .collapsible-link::after {

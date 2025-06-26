@@ -1,0 +1,46 @@
+<table class="table table-bordered table-hover table-striped animated-table">
+    <tbody id="employeeTable">
+        {% for record in attendance_records %}
+        <tr>
+            <td>{{ record.employee.id }}</td>
+            <td>{{ record.employee.name }}</td>
+            <td>{{ record.employee.period }}</td>
+            <td>{{ record.employee.job_start_time }}</td>
+            <td>{{ record.employee.job_end_time }}</td>
+            <td class="time-cell">
+                <span class="time-display" data-type="check_in">
+                    {% if record.check_in_time %}
+                        {{ record.check_in_time }}
+                    {% else %}
+                        لم تسجل بعد
+                    {% endif %}
+                </span>
+                <button class="edit-btn btn-sm" data-type="check_in" data-employee-id="{{ record.employee.id }}">تعديل</button>
+            </td>
+            <td class="time-cell">
+                <span class="time-display" data-type="check_out">
+                    {% if record.check_out_time %}
+                        {{ record.check_out_time }}
+                    {% else %}
+                        لم تسجل بعد
+                    {% endif %}
+                </span>
+                <button class="edit-btn btn-sm" data-type="check_out" data-employee-id="{{ record.employee.id }}">تعديل</button>
+            </td>
+            <td>
+                {% if record.employee.photo %}
+                <img src="{{ url_for('static', filename='emp_imgs/' + record.employee.photo) }}" alt="Photo" class="img-thumbnail">
+                {% else %}
+                <img src="{{ url_for('static', filename='emp_imgs/profile.png') }}" alt="Photo" class="img-thumbnail">
+                {% endif %}
+            </td>
+            <td>
+                <form action="{{ url_for('main.delete_attendence', employee_id=record.employee.id) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm mx-1"
+                        onclick="return confirm('هل انت متاكد انك تريد حذف هذا التسجيل?');">حذف</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table> 

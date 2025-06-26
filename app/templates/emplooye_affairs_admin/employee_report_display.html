@@ -1,0 +1,1373 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}تقرير الموظف{% endblock %}
+
+{% block admin_content %}
+<style>
+    /* Enhanced styling for the report section */
+    .report-container {
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-top: 30px;
+        padding: 25px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .report-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #0d6efd, #6610f2);
+    }
+    
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eaeaea;
+        padding-bottom: 25px;
+        position: relative;
+    }
+    
+    .report-header::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        right: 0;
+        width: 100px;
+        height: 2px;
+        background: linear-gradient(90deg, #0d6efd, #6610f2);
+    }
+    
+    .report-dates {
+        text-align: center;
+        margin-bottom: 15px;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        border-right: 4px solid #0d6efd;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .report-dates:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    
+    .date-highlight {
+        color: #0d6efd;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    
+    .logo {
+        max-width: 150px;
+        height: auto;
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.1));
+        transition: transform 0.3s ease;
+    }
+    
+    .logo:hover {
+        transform: scale(1.05);
+    }
+    
+    .report-title {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 2rem;
+        padding: 1.2rem;
+        text-align: center;
+        color: #343a40;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    
+    .report-title::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 6px;
+        height: 100%;
+        background-color: #0d6efd;
+    }
+    
+    .report-title h2 {
+        font-weight: 700;
+        margin: 0;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .office-title {
+        background: linear-gradient(135deg, #343a40 0%, #212529 100%);
+        border-bottom: 2px solid #495057;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        text-align: center;
+        color: #f8f9fa;
+        border-radius: 8px;
+        position: relative;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .office-title::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 50%;
+        width: 30%;
+        height: 2px;
+        background-color: #0d6efd;
+        transform: translateX(-50%);
+    }
+    
+    .office-section {
+        margin-bottom: 40px;
+        position: relative;
+    }
+    
+    /* Enhanced Form Section Styling */
+    .form-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #eef1f5 100%);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 35px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e9ecef;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .form-section:hover {
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+        transform: translateY(-5px);
+    }
+    
+    .form-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #28a745, #20c997);
+    }
+    
+    .form-section h3 {
+        margin-bottom: 25px;
+        color: #343a40;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 15px;
+        text-align: center;
+        font-weight: 700;
+        position: relative;
+    }
+    
+    .form-section h3::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 50%;
+        width: 100px;
+        height: 3px;
+        background: linear-gradient(90deg, #28a745, #20c997);
+        transform: translateX(-50%);
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #ced4da;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+    
+    .btn-generate {
+        background: linear-gradient(90deg, #28a745, #20c997);
+        color: white;
+        font-weight: 600;
+        padding: 12px 25px;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-generate:hover {
+        background: linear-gradient(90deg, #218838, #1e9a79);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Stats Dashboard */
+    .stats-dashboard {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        flex: 1;
+        min-width: 200px;
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border-right: 4px solid #6c757d;
+        transition: all 0.3s ease;
+        text-align: center;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card .stat-icon {
+        font-size: 24px;
+        margin-bottom: 10px;
+        color: #6c757d;
+    }
+    
+    .stat-card .stat-count {
+        font-size: 26px;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    
+    .stat-card .stat-label {
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, rgba(108, 117, 125, 0.5), transparent);
+    }
+    
+    .stat-card[data-type="check_in_delays"] {
+        border-right-color: #dc3545;
+    }
+    
+    .stat-card[data-type="check_in_delays"] .stat-icon {
+        color: #dc3545;
+    }
+    
+    .stat-card[data-type="absent"] {
+        border-right-color: #ffc107;
+    }
+    
+    .stat-card[data-type="absent"] .stat-icon {
+        color: #ffc107;
+    }
+    
+    .stat-card[data-type="agaza"] {
+        border-right-color: #28a745;
+    }
+    
+    .stat-card[data-type="agaza"] .stat-icon {
+        color: #28a745;
+    }
+    
+    .stat-card[data-type="ezn"] {
+        border-right-color: #17a2b8;
+    }
+    
+    .stat-card[data-type="ezn"] .stat-icon {
+        color: #17a2b8;
+    }
+    
+    .stat-card[data-type="momrya"] {
+        border-right-color: #6610f2;
+    }
+    
+    .stat-card[data-type="momrya"] .stat-icon {
+        color: #6610f2;
+    }
+    
+    /* Print styles */
+    @media print {
+        .form-section, .jumbotron, .btn-print, .navbar, .stats-dashboard, .category-tabs, .summary-button {
+            display: none !important;
+        }
+        
+        .report-container {
+            box-shadow: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .table th {
+            background-color: #f2f2f2 !important;
+            color: black !important;
+        }
+    }
+    
+    /* Category Tabs Styling */
+    .category-tabs {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .category-tabs .nav-pills {
+        gap: 8px;
+    }
+    
+    .category-tabs .nav-link {
+        border-radius: 8px;
+        padding: 10px 15px;
+        font-weight: 600;
+        color: #495057;
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+    
+    .category-tabs .nav-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .category-tabs .nav-link.active {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+    }
+    
+    .category-tabs .badge {
+        margin-right: 5px;
+        padding: 5px 8px;
+        font-size: 12px;
+        border-radius: 12px;
+    }
+    
+    .bg-purple {
+        background-color: #6610f2;
+        color: white;
+    }
+</style>
+
+<div class="jumbotron" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 30px;">
+    <div class="container">
+        <h1 class="display-4" style="font-weight: 700; color: #343a40; border-right: 5px solid #0d6efd; padding-right: 15px;">
+             <span class="username">تقرير موظف</span>
+        </h1>
+        <p class="lead" style="font-weight: 500; color: #6c757d;">
+            إنشاء تقرير شامل للموظفين بناءً على معايير مختارة
+        </p>
+        <hr class="my-4" style="background: linear-gradient(90deg, #0d6efd, #6c757d, #e9ecef); height: 2px; opacity: 0.5;">
+    </div>
+</div>
+
+<div class="container">
+    <!-- Flash message section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- Stats Dashboard -->
+    <div class="stats-dashboard" id="statsDashboard">
+        <div class="stat-card" data-type="check_in_delays" onclick="document.querySelector('[data-category=\'check_in_delays\']').click()">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-count" id="count-check_in_delays">0</div>
+            <div class="stat-label">تأخيرات</div>
+        </div>
+        
+        <div class="stat-card" data-type="absent" onclick="document.querySelector('[data-category=\'absent\']').click()">
+            <div class="stat-icon">
+                <i class="fas fa-user-times"></i>
+            </div>
+            <div class="stat-count" id="count-absent">0</div>
+            <div class="stat-label">غيابات</div>
+        </div>
+        
+        <div class="stat-card" data-type="agaza" onclick="document.querySelector('[data-category=\'agaza\']').click()">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-count" id="count-agaza">0</div>
+            <div class="stat-label">اجازات</div>
+        </div>
+        
+        <div class="stat-card" data-type="ezn" onclick="document.querySelector('[data-category=\'ezn\']').click()">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-count" id="count-ezn">0</div>
+            <div class="stat-label">اذونات</div>
+        </div>
+        
+        <div class="stat-card" data-type="momrya" onclick="document.querySelector('[data-category=\'momrya\']').click()">
+            <div class="stat-icon">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="stat-count" id="count-momrya">0</div>
+            <div class="stat-label">المأموريات</div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-section">
+                <h3 class="text-center">معايير التقرير</h3>
+                
+                <form method="POST" action="{{ url_for('main.employee_report') }}" id="reportForm">
+                    {% if user_type == 'manager' %}  
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="office_name" class="form-label">
+                                <i class="fas fa-building me-1" style="color: #28a745;"></i> المكتب
+                            </label>
+                            <select class="form-select" id="office_name" name="office_name" required>
+                                {% for office in all_offices %}
+                                {% if user_type == 'manager' %}
+                                    {% if office == user_office %}
+                                        <option value="{{ office }}" selected="selected">{{ office }}</option>
+                                    {% endif %}
+                                {% else %}
+                                    <option value="{{ office }}" {% if office == user_office %}selected="selected"{% endif %}>{{ office }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="employee_name" class="form-label">
+                                <i class="fas fa-user me-1" style="color: #0d6efd;"></i> اسم الموظف
+                            </label>
+                            <select class="form-select" id="employee_name" name="employee_name" required>
+                                {% for employee in employees %}
+                                    <option value="{{ employee.id }}">{{ employee.name }} ({{ employee.period }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user_type == 'admin' %}  
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="office_name" class="form-label">
+                                <i class="fas fa-building me-1" style="color: #28a745;"></i> المكتب
+                            </label>
+                            <select class="form-select" id="office_name" name="office_name" required>
+                                {% for office in all_offices %}
+                                    <option value="{{ office }}">{{ office }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="employee_name" class="form-label">
+                                <i class="fas fa-user me-1" style="color: #0d6efd;"></i> اسم الموظف
+                            </label>
+                            <select class="form-select" id="employee_name" name="employee_name" required>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user_type == 'employee' %}  
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="office_name" class="form-label">
+                                <i class="fas fa-building me-1" style="color: #28a745;"></i> المكتب
+                            </label>
+                            <select class="form-select" id="office_name" name="office_name" required>
+                                <option value="{{ current_user.office }}" selected="selected">{{ current_user.office }}</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="employee_name" class="form-label">
+                                <i class="fas fa-user me-1" style="color: #0d6efd;"></i> اسم الموظف
+                            </label>
+                            <select class="form-select" id="employee_name" name="employee_name" required>
+                                <option value="{{ current_user.id}}" selected="selected">{{ current_user.name}} </option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="date_from" class="form-label">
+                                <i class="fas fa-calendar-alt me-1" style="color: #dc3545;"></i> من تاريخ
+                            </label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="date_to" class="form-label">
+                                <i class="fas fa-calendar-alt me-1" style="color: #dc3545;"></i> إلى تاريخ
+                            </label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="report_type" class="form-label">
+                            <i class="fas fa-file-alt me-1" style="color: #6610f2;"></i> نوع التقرير
+                        </label>
+                        <select class="form-select" id="report_type" name="report_type" required>
+                            <option value="all">جميع التقارير</option>
+                            <option value="summary">ملخص التقارير</option>
+                            <option value="check_in_attendance">تمام الحضور</option>
+                            <option value="check_in_delays">تأخيرات</option>
+                            <option value="check_out_attendance">تمام الانصراف</option>
+                            <option value="no_check_out">عدم تسجيل الانصراف</option>
+                            <option value="check_all">تمام حضور وانصراف</option>
+                            <option value="momrya">المأموريات</option>
+                            <option value="absent">غيابات</option>
+                            <option value="ezn">اذونات</option>
+                            <option value="agaza">اجازات</option>
+                            <option value="clinic">عيادة</option>
+                            <option value="altmas">التماس</option>
+                            <option value="rased">رصيد الموظف</option>
+                            <option value="rest">الراحات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-generate">
+                            <i class="fas fa-chart-bar me-2"></i> انشاء التقرير
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category Tabs -->
+    <div id="categoryTabs" class="category-tabs mb-4 mt-4" style="display: none;">
+        <ul class="nav nav-pills nav-fill">
+            <li class="nav-item">
+                <button class="nav-link active" data-category="all">
+                    <i class="fas fa-list-alt me-1"></i> الكل
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-category="check_in_delays">
+                    <i class="fas fa-exclamation-triangle me-1"></i> تأخيرات
+                    <span class="badge bg-danger category-count" id="count-check_in_delays">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-category="absent">
+                    <i class="fas fa-user-times me-1"></i> غيابات
+                    <span class="badge bg-warning category-count" id="count-absent">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-category="agaza">
+                    <i class="fas fa-calendar-alt me-1"></i> اجازات
+                    <span class="badge bg-success category-count" id="count-agaza">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-category="ezn">
+                    <i class="fas fa-clipboard-list me-1"></i> اذونات
+                    <span class="badge bg-info category-count" id="count-ezn">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-category="momrya">
+                    <i class="fas fa-briefcase me-1"></i> المأموريات
+                    <span class="badge bg-purple category-count" id="count-momrya">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-category="summary">
+                    <i class="fas fa-chart-pie me-1"></i> الملخص
+                </button>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Summary Section -->
+    <div id="summarySection" class="report-container mb-4" style="display: none;">
+        <div class="report-title">
+            <h2><i class="fas fa-chart-pie me-2"></i> ملخص التقارير</h2>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> معلومات الموظف</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th style="width: 40%;">اسم الموظف</th>
+                                <td id="summary-employee-name"></td>
+                            </tr>
+                            <tr>
+                                <th>المكتب</th>
+                                <td id="summary-office"></td>
+                            </tr>
+                            <tr>
+                                <th>الفترة</th>
+                                <td id="summary-period"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i> فترة التقرير</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th style="width: 40%;">من تاريخ</th>
+                                <td id="summary-date-from"></td>
+                            </tr>
+                            <tr>
+                                <th>إلى تاريخ</th>
+                                <td id="summary-date-to"></td>
+                            </tr>
+                            <tr>
+                                <th>عدد الأيام</th>
+                                <td id="summary-days-count"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> إحصائيات التقرير</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-danger text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="summary-delays-count">0</h3>
+                                        <h5>تأخيرات</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-warning text-dark">
+                                    <div class="card-body text-center">
+                                        <h3 id="summary-absences-count">0</h3>
+                                        <h5>غيابات</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="summary-leaves-count">0</h3>
+                                        <h5>اجازات</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="summary-permissions-count">0</h3>
+                                        <h5>اذونات</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="summary-missions-count">0</h3>
+                                        <h5>المأموريات</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-secondary text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="summary-total-records">0</h3>
+                                        <h5>إجمالي السجلات</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Report Display Container -->
+    <div id="allReportsContainer">
+        <!-- Report sections will be dynamically added here -->
+    </div>
+    
+    {% if report_data and report_data|length > 0 %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="report-container" id="report-section">
+                <div class="report-header">
+                    <div class="report-dates">
+                        <p class="mb-0">من يوم: <span class="date-highlight">{{ report_from }}</span></p>
+                        <p class="mb-0">الي يوم: <span class="date-highlight">{{ report_to }}</span></p>
+                        <p class="mb-0">تمت الطباعة يوم: <span class="date-highlight">{{ current_date }}</span></p>
+                    </div>
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Institute Logo" class="logo">
+                </div>
+                
+                <div class="report-title">
+                    <h2>
+                        {% if report_type == 'check_in_attendance' %}
+                        <i class="fas fa-user-check me-2"></i> تمام الحضور <span class="badge bg-primary">{{count}}</span>
+                        {% elif report_type == 'check_in_delays' %}
+                        <i class="fas fa-exclamation-triangle me-2"></i> تأخيرات <span class="badge bg-danger">{{count}}</span>
+                        {% elif report_type == 'check_out_attendance' %}
+                        <i class="fas fa-sign-out-alt me-2"></i> تمام الانصراف <span class="badge bg-primary">{{count}}</span>
+                        {% elif report_type == 'check_out_ahead' %}
+                        <i class="fas fa-running me-2"></i> الانصراف قبل الميعاد <span class="badge bg-warning">{{count}}</span>
+                        {% elif report_type == 'agaza' %}
+                        <i class="fas fa-calendar-alt me-2"></i> تمام الاجازات <span class="badge bg-success">{{count}}</span>
+                        {% elif report_type == 'ezn' %}
+                        <i class="fas fa-clipboard-list me-2"></i> تمام الاذونات <span class="badge bg-info">{{count}}</span>
+                        {% elif report_type == 'clinic' %}
+                        <i class="fas fa-stethoscope me-2"></i> تمام العيادات <span class="badge bg-secondary">{{count}}</span>
+                        {% elif report_type == 'rest' %}
+                        <i class="fas fa-bed me-2"></i> تمام الراحات <span class="badge bg-secondary">{{count}}</span>
+                        {% elif report_type == 'altmas' %}
+                        <i class="fas fa-file-alt me-2"></i> تمام الالتماسات <span class="badge bg-dark">{{count}}</span>
+                        {% elif report_type == 'check_all' %}
+                        <i class="fas fa-clipboard-check me-2"></i> تمام حضور وانصراف <span class="badge bg-primary">{{count}}</span>
+                        {% elif report_type == 'absent' %}
+                        <i class="fas fa-user-times me-2"></i> تمام الغياب <span class="badge bg-warning">{{count}}</span>
+                        {% elif report_type == 'momrya' %}
+                        <i class="fas fa-briefcase me-2"></i> المأموريات <span class="badge bg-purple">{{count}}</span>
+                        {% elif report_type == 'no_check_out' %}
+                        <i class="fas fa-user-clock me-2"></i> تمام عدم تسجيل الانصراف <span class="badge bg-warning">{{count}}</span>
+                        {% elif report_type == 'no_salary' %}
+                        <i class="fas fa-money-bill-wave me-2"></i> تمام اجازات بدون مرتب <span class="badge bg-info">{{count}}</span>
+                        {% elif report_type == 'entdab' %}
+                        <i class="fas fa-exchange-alt me-2"></i> تمام الانتداب <span class="badge bg-primary">{{count}}</span>
+                        {% elif report_type == 'fr2a' %}
+                        <i class="fas fa-users me-2"></i> تمام الفرق / الدورات التعليمية <span class="badge bg-secondary">{{count}}</span>
+                        {% elif report_type == 'agaza_only' %}
+                        <i class="fas fa-calendar-check me-2"></i> تمام الاجازات <span class="badge bg-success">{{count}}</span>
+                        {% else %}
+                        <i class="fas fa-file me-2"></i> تقرير غير معروف <span class="badge bg-dark">{{count}}</span>
+                        {% endif %}
+                    </h2>
+                </div>
+                
+                {% set offices = report_data | groupby('Office') %}
+                {% for office, employees in offices %}
+                <section class="office-section">
+                    <h3 class="office-title">{{ office }}</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    {% for key in employees[0].keys() if key != 'Office' %}
+                                        <th>{{ translations.get(key, key) }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in employees | sort(attribute='Employee Name') %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    {% for key, value in entry.items() if key != 'Office' %}
+                                        <td>{{ value }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                {% endfor %}
+                
+                <div class="d-flex justify-content-center mt-4">
+                    <button class="btn btn-print me-2" onclick="window.print();">
+                        <i class="fas fa-print me-1"></i> طباعة التقرير
+                    </button>
+                    <form action="{{ url_for('main.generate_print_report') }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="report_type" value="{{ report_type }}">
+                        <input type="hidden" name="date_from" value="{{ request.form.get('date_from', '') }}">
+                        <input type="hidden" name="date_to" value="{{ request.form.get('date_to', '') }}">
+                        <input type="hidden" name="employee_id" value="{{ request.form.get('employee_name', '') }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-file-pdf me-1"></i> تحميل PDF
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Define global variables
+    let allReportsData = {};
+    let currentCategory = 'all';
+    
+    // Set today's date as default for date_to
+    document.addEventListener('DOMContentLoaded', function() {
+        var today = new Date();
+        var day = ("0" + today.getDate()).slice(-2);
+        var month = ("0" + (today.getMonth() + 1)).slice(-2);
+        var todayFormatted = today.getFullYear() + '-' + month + '-' + day;
+        
+        document.getElementById('date_to').value = todayFormatted;
+        
+        // Set default for date_from (1 month ago)
+        var oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        var dayFrom = ("0" + oneMonthAgo.getDate()).slice(-2);
+        var monthFrom = ("0" + (oneMonthAgo.getMonth() + 1)).slice(-2);
+        var oneMonthAgoFormatted = oneMonthAgo.getFullYear() + '-' + monthFrom + '-' + dayFrom;
+        
+        document.getElementById('date_from').value = oneMonthAgoFormatted;
+        
+        // Modify form submission to handle 'all' report type
+        const reportForm = document.getElementById('reportForm');
+        if (reportForm) {
+            reportForm.addEventListener('submit', function(e) {
+                const reportType = document.getElementById('report_type').value;
+                
+                // If 'all' or 'summary' is selected, prevent normal form submission and load all reports
+                if (reportType === 'all' || reportType === 'summary') {
+                    e.preventDefault();
+                    loadAllReports();
+                }
+            });
+        }
+        
+        // Add event listeners for category tabs
+        setupCategoryTabs();
+        
+        // Auto-load reports on page load if employee is selected
+        const employeeSelect = document.getElementById('employee_name');
+        if (employeeSelect && employeeSelect.value) {
+            setTimeout(loadAllReports, 500);
+        }
+    });
+    
+    // Update employees dropdown when office changes
+    document.addEventListener('DOMContentLoaded', function () {
+        var officeSelect = document.getElementById('office_name');
+        var employeeSelect = document.getElementById('employee_name');
+        
+        if (officeSelect && employeeSelect) {
+            function updateEmployees(office) {
+                console.log('Updating employees for office:', office);
+                fetch('/get_employees/' + encodeURIComponent(office))
+                    .then(response => response.json())
+                    .then(data => {
+                        employeeSelect.innerHTML = '';  // Clear existing options
+                        
+                        data.forEach(employee => {
+                            var option = document.createElement('option');
+                            option.value = employee.id;
+                            option.text = employee.name + ' (' + employee.period + ')';
+                            employeeSelect.appendChild(option);
+                        });
+                        console.log('Employee list updated');
+                    })
+                    .catch(error => console.error('Error updating employees:', error));
+            }
+            
+            function getVisibleOffice() {
+                return officeSelect.options[officeSelect.selectedIndex].text;
+            }
+            
+            function handleOfficeChange() {
+                var visibleOffice = getVisibleOffice();
+                updateEmployees(visibleOffice);
+            }
+            
+            officeSelect.addEventListener('change', handleOfficeChange);
+            
+            // Initial population
+            if (officeSelect.options.length > 0) {
+                handleOfficeChange();
+            }
+        }
+    });
+    
+    // Setup category tabs
+    function setupCategoryTabs() {
+        const categoryButtons = document.querySelectorAll('.category-tabs .nav-link');
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const category = this.getAttribute('data-category');
+                
+                // Update active button
+                categoryButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding report section
+                showReportCategory(category);
+            });
+        });
+    }
+    
+    // Show report category
+    function showReportCategory(category) {
+        currentCategory = category;
+        
+        // Hide all report sections
+        const allReportSections = document.querySelectorAll('.report-category-section');
+        allReportSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show summary section if applicable
+        const summarySection = document.getElementById('summarySection');
+        if (category === 'summary') {
+            summarySection.style.display = 'block';
+            return;
+        } else {
+            summarySection.style.display = 'none';
+        }
+        
+        // Show all sections or specific category
+        if (category === 'all') {
+            allReportSections.forEach(section => {
+                section.style.display = 'block';
+            });
+        } else {
+            const categorySection = document.getElementById(`report-section-${category}`);
+            if (categorySection) {
+                categorySection.style.display = 'block';
+            }
+        }
+    }
+    
+    // Load all reports
+    function loadAllReports() {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        const employeeId = document.getElementById('employee_name').value;
+        const office = document.getElementById('office_name').value;
+        
+        if (!dateFrom || !dateTo || !employeeId) {
+            alert('الرجاء اختيار التاريخ والموظف');
+            return;
+        }
+        
+        // Show loading indicator
+        const container = document.getElementById('allReportsContainer');
+        container.innerHTML = `
+            <div class="text-center my-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+                <h4 class="mt-3">جاري تحميل التقارير...</h4>
+            </div>
+        `;
+        
+        // Make all category tabs visible
+        document.getElementById('categoryTabs').style.display = 'block';
+        
+        // Clear previous data
+        allReportsData = {};
+        
+        // Define the report types to load
+        const reportTypes = [
+            { type: 'check_in_delays', label: 'تأخيرات', icon: 'fa-exclamation-triangle', cssClass: 'bg-danger' },
+            { type: 'absent', label: 'غيابات', icon: 'fa-user-times', cssClass: 'bg-warning' },
+            { type: 'agaza', label: 'اجازات', icon: 'fa-calendar-alt', cssClass: 'bg-success' },
+            { type: 'ezn', label: 'اذونات', icon: 'fa-clipboard-list', cssClass: 'bg-info' },
+            { type: 'momrya', label: 'المأموريات', icon: 'fa-briefcase', cssClass: 'bg-primary' },
+            { type: 'clinic', label: 'عيادة', icon: 'fa-stethoscope', cssClass: 'bg-secondary' },
+            { type: 'check_in_attendance', label: 'تمام الحضور', icon: 'fa-user-check', cssClass: 'bg-primary' },
+            { type: 'check_out_attendance', label: 'تمام الانصراف', icon: 'fa-sign-out-alt', cssClass: 'bg-primary' }
+        ];
+        
+        // Load employee info for summary
+        loadEmployeeInfo(employeeId);
+        
+        // Update summary date info
+        document.getElementById('summary-date-from').textContent = formatDate(dateFrom);
+        document.getElementById('summary-date-to').textContent = formatDate(dateTo);
+        
+        const startDate = new Date(dateFrom);
+        const endDate = new Date(dateTo);
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('summary-days-count').textContent = diffDays;
+        
+        // Create promises for all report types
+        const promises = reportTypes.map(reportType => {
+            return fetchReportData(reportType.type, dateFrom, dateTo, employeeId, office)
+                .then(data => {
+                    // Store the report data
+                    allReportsData[reportType.type] = data;
+                    
+                    // Update count badges
+                    document.getElementById(`count-${reportType.type}`)?.textContent = data.length;
+                    
+                    // Update summary counters
+                    updateSummaryCounters(reportType.type, data.length);
+                    
+                    return { type: reportType.type, data, reportInfo: reportType };
+                })
+                .catch(error => {
+                    console.error(`Error loading ${reportType.type} report:`, error);
+                    return { type: reportType.type, data: [], reportInfo: reportType };
+                });
+        });
+        
+        // When all promises resolve
+        Promise.all(promises).then(results => {
+            // Clear loading indicator
+            container.innerHTML = '';
+            
+            // Calculate total records
+            let totalRecords = 0;
+            results.forEach(result => {
+                totalRecords += result.data.length;
+            });
+            document.getElementById('summary-total-records').textContent = totalRecords;
+            
+            // Generate report sections
+            results.forEach(result => {
+                if (result.data.length > 0) {
+                    const reportSection = createReportSection(result.type, result.data, result.reportInfo);
+                    container.appendChild(reportSection);
+                }
+            });
+            
+            // Show the initial category
+            showReportCategory(currentCategory);
+        });
+    }
+    
+    // Fetch report data
+    function fetchReportData(reportType, dateFrom, dateTo, employeeId, office) {
+        return new Promise((resolve, reject) => {
+            // Create form data
+            const formData = new FormData();
+            formData.append('report_type', reportType);
+            formData.append('date_from', dateFrom);
+            formData.append('date_to', dateTo);
+            formData.append('employee_name', employeeId);
+            
+            // Make AJAX request
+            fetch('{{ url_for("main.employee_report_ajax") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                resolve(data.report_data || []);
+            })
+            .catch(error => {
+                console.error('Error fetching report data:', error);
+                reject(error);
+            });
+        });
+    }
+    
+    // Load employee info
+    function loadEmployeeInfo(employeeId) {
+        fetch(`/api/employee_info/${employeeId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('summary-employee-name').textContent = data.name;
+                document.getElementById('summary-office').textContent = data.office_name;
+                document.getElementById('summary-period').textContent = data.period;
+            })
+            .catch(error => {
+                console.error('Error loading employee info:', error);
+            });
+    }
+    
+    // Update summary counters
+    function updateSummaryCounters(reportType, count) {
+        switch(reportType) {
+            case 'check_in_delays':
+                document.getElementById('summary-delays-count').textContent = count;
+                break;
+            case 'absent':
+                document.getElementById('summary-absences-count').textContent = count;
+                break;
+            case 'agaza':
+                document.getElementById('summary-leaves-count').textContent = count;
+                break;
+            case 'ezn':
+                document.getElementById('summary-permissions-count').textContent = count;
+                break;
+            case 'momrya':
+                document.getElementById('summary-missions-count').textContent = count;
+                break;
+        }
+    }
+    
+    // Create report section
+    function createReportSection(reportType, data, reportInfo) {
+        const section = document.createElement('div');
+        section.id = `report-section-${reportType}`;
+        section.className = 'report-container report-category-section mb-4';
+        section.style.display = 'none'; // Initially hidden
+        
+        // Group data by office
+        const officeGroups = groupByOffice(data);
+        
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'report-title';
+        header.innerHTML = `
+            <h2>
+                <i class="fas ${reportInfo.icon} me-2"></i> 
+                ${reportInfo.label} 
+                <span class="badge ${reportInfo.cssClass}">${data.length}</span>
+            </h2>
+        `;
+        section.appendChild(header);
+        
+        // Create tables for each office
+        Object.entries(officeGroups).forEach(([office, employees]) => {
+            const officeSection = document.createElement('section');
+            officeSection.className = 'office-section';
+            
+            const officeTitle = document.createElement('h3');
+            officeTitle.className = 'office-title';
+            officeTitle.textContent = office;
+            officeSection.appendChild(officeTitle);
+            
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-responsive';
+            
+            if (employees.length > 0) {
+                // Create table
+                const table = createDataTable(employees);
+                tableContainer.appendChild(table);
+            } else {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'alert alert-info';
+                emptyMessage.textContent = 'لا توجد بيانات لهذا المكتب';
+                tableContainer.appendChild(emptyMessage);
+            }
+            
+            officeSection.appendChild(tableContainer);
+            section.appendChild(officeSection);
+        });
+        
+        // Add print/export buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'd-flex justify-content-center mt-4';
+        buttonContainer.innerHTML = `
+            <button class="btn btn-print me-2" onclick="window.print();">
+                <i class="fas fa-print me-1"></i> طباعة التقرير
+            </button>
+            <form action="{{ url_for('main.generate_print_report') }}" method="POST" style="display:inline;">
+                <input type="hidden" name="report_type" value="${reportType}">
+                <input type="hidden" name="date_from" value="${document.getElementById('date_from').value}">
+                <input type="hidden" name="date_to" value="${document.getElementById('date_to').value}">
+                <input type="hidden" name="employee_id" value="${document.getElementById('employee_name').value}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-file-pdf me-1"></i> تحميل PDF
+                </button>
+            </form>
+        `;
+        section.appendChild(buttonContainer);
+        
+        return section;
+    }
+    
+    // Group data by office
+    function groupByOffice(data) {
+        const groups = {};
+        
+        data.forEach(item => {
+            const office = item.Office || 'غير محدد';
+            if (!groups[office]) {
+                groups[office] = [];
+            }
+            groups[office].push(item);
+        });
+        
+        return groups;
+    }
+    
+    // Create data table
+    function createDataTable(data) {
+        const table = document.createElement('table');
+        table.className = 'table table-striped table-bordered table-sm';
+        
+        // Create table header
+        const thead = document.createElement('thead');
+        thead.className = 'table-light';
+        const headerRow = document.createElement('tr');
+        
+        // Add index column
+        const indexHeader = document.createElement('th');
+        indexHeader.textContent = '#';
+        headerRow.appendChild(indexHeader);
+        
+        // Add other columns
+        if (data.length > 0) {
+            Object.keys(data[0]).forEach(key => {
+                if (key !== 'Office') {
+                    const th = document.createElement('th');
+                    th.textContent = getTranslation(key);
+                    headerRow.appendChild(th);
+                }
+            });
+        }
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create table body
+        const tbody = document.createElement('tbody');
+        
+        // Sort data by employee name if available
+        if (data.length > 0 && data[0]['Employee Name']) {
+            data.sort((a, b) => {
+                return a['Employee Name'].localeCompare(b['Employee Name']);
+            });
+        }
+        
+        // Add data rows
+        data.forEach((entry, index) => {
+            const row = document.createElement('tr');
+            
+            // Add index column
+            const indexCell = document.createElement('td');
+            indexCell.textContent = index + 1;
+            row.appendChild(indexCell);
+            
+            // Add other columns
+            Object.entries(entry).forEach(([key, value]) => {
+                if (key !== 'Office') {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    row.appendChild(td);
+                }
+            });
+            
+            tbody.appendChild(row);
+        });
+        
+        table.appendChild(tbody);
+        return table;
+    }
+    
+    // Get translation for a key
+    function getTranslation(key) {
+        const translations = {
+            'Employee Name': 'اسم الموظف',
+            'Office': 'المكتب',
+            'Time': 'الوقت',
+            'Delay Time': 'وقت التأخير',
+            'Leave Early Time': 'وقت المغادرة المبكر',
+            'date': 'التاريخ',
+            'clinic_type': 'نوع العيادة',
+            'back_time': 'وقت العودة',
+            'result': 'النتيجة',
+            'From Time': 'من الوقت',
+            'From Date': 'من تاريخ',
+            'To Date': 'إلى تاريخ',
+            'To Time': 'إلى الوقت',
+            'Out Time': 'وقت الخروج',
+            'Back Time': 'وقت العوده',
+            'atydya_points': 'نقاط اعتيادية',
+            'arda_points': 'نقاط عارضة',
+            'atydya_all': 'الكل الاعتيادية',
+            'arda_all': 'الكل العارضة',
+            'old_points': 'النقاط القديمة',
+            'from_date': 'من التاريخ',
+            'to_date': 'إلى التاريخ',
+            'submit_date': 'تاريخ التقديم',
+            'agza_type': 'نوع الاجازة',
+            'Alternative': 'البديل',
+            'Approval Status': 'حالة الموافقة',
+            'Submit Date': 'تاريخ الطلب',
+            'Type': 'نوع',
+            'clone': 'البديل',
+            'name': 'الاسم',
+            'office_name': 'المكتب',
+            'Message': 'الحالة',
+            'Petition': 'الالتماس',
+            'Diagnosis': 'تشخيص العيادة',
+            'Clinic Type': 'نوع العيادة',
+            'Date': 'التاريخ',
+            'Rest Day': 'الراحة',
+            'check_in_time': 'موعد العمل',
+            'check_out_time':'موعد الانصراف',
+            'notes_agaza_manager': 'ملاحظات المدير',
+            'notes_agaza': 'ملاحظات الاجازة',
+            'Arabic day':'يوم',
+            'in':"حضور",
+            'out':'انصرف',
+            'Reason':'سبب المأمورية'
+        };
+        
+        return translations[key] || key;
+    }
+    
+    // Format date for display
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+</script>
+{% endblock %} 

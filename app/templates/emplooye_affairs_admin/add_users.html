@@ -100,7 +100,148 @@
                     </div>
                 </div>
         
-
+                <!-- New Permissions Section -->
+                <div class="form-section">
+                    <h3 class="section-title">صلاحيات المستخدم</h3>
+                    <div class="permission-control mb-3">
+                        <button type="button" class="btn btn-sm btn-secondary" id="set-all-both">تعيين الكل</button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="set-all-none">إلغاء الكل</button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <table class="table table-bordered table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width: 60%">الصفحة</th>
+                                        <th style="width: 20%">مسموح</th>
+                                        <th style="width: 20%">غير مسموح</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dashboard -->
+                                    <tr>
+                                        <td>لوحة القيادة</td>
+                                        <td><input type="radio" name="permission_admin_dashboard" value="both" class="permission-radio both" {% if permissions and permissions.get('main.admin_dashboard') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_admin_dashboard" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.admin_dashboard') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Users -->
+                                    <tr>
+                                        <td>الموظفين</td>
+                                        <td><input type="radio" name="permission_admin_users" value="both" class="permission-radio both" {% if permissions and permissions.get('main.admin_users') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_admin_users" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.admin_users') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Requests -->
+                                    <tr>
+                                        <td>الطلبات</td>
+                                        <td><input type="radio" name="permission_add_request" value="both" class="permission-radio both" {% if permissions and permissions.get('main.add_request') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_add_request" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.add_request') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Approvals -->
+                                    <tr>
+                                        <td>التصديقات والمتابعات</td>
+                                        <td><input type="radio" name="permission_requests_veiws" value="both" class="permission-radio both" {% if permissions and permissions.get('main.requests_veiws') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_requests_veiws" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.requests_veiws') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Daily Reports -->
+                                    <tr>
+                                        <td>التقارير اليومية</td>
+                                        <td><input type="radio" name="permission_admin_reports" value="both" class="permission-radio both" {% if permissions and permissions.get('main.admin_reports') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_admin_reports" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.admin_reports') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Employee Reports -->
+                                    <tr>
+                                        <td>تقارير الموظفين</td>
+                                        <td><input type="radio" name="permission_employee_report" value="both" class="permission-radio both" {% if permissions and permissions.get('main.employee_report') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_employee_report" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.employee_report') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Mo2srat -->
+                                    <tr>
+                                        <td>المؤثرات</td>
+                                        <td><input type="radio" name="permission_mo2srat" value="both" class="permission-radio both" {% if permissions and permissions.get('main.mo2srat') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_mo2srat" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.mo2srat') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Tmam -->
+                                    <tr>
+                                        <td>التمام اليومي</td>
+                                        <td><input type="radio" name="permission_tmam" value="both" class="permission-radio both" {% if permissions and permissions.get('main.tmam') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_tmam" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.tmam') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Attendance Sign -->
+                                    <tr>
+                                        <td>تسجيلات الحضور</td>
+                                        <td><input type="radio" name="permission_attendnce_sign" value="both" class="permission-radio both" {% if permissions and permissions.get('main.attendnce_sign') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_attendnce_sign" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.attendnce_sign') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- User Accounts -->
+                                    <tr>
+                                        <td>الحسابات</td>
+                                        <td><input type="radio" name="permission_users" value="both" class="permission-radio both" {% if permissions and permissions.get('main.users') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_users" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.users') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Deduction -->
+                                    <tr>
+                                        <td>جزائات الموظفين</td>
+                                        <td><input type="radio" name="permission_Deduction" value="both" class="permission-radio both" {% if permissions and permissions.get('main.Deduction') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_Deduction" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.Deduction') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Employee Rates -->
+                                    <tr>
+                                        <td>تقيمات الموظفين</td>
+                                        <td><input type="radio" name="permission_employee_rates" value="both" class="permission-radio both" {% if permissions and permissions.get('main.employee_rates') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_employee_rates" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.employee_rates') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Official Holidays -->
+                                    <tr>
+                                        <td>الاجازات الرسمية</td>
+                                        <td><input type="radio" name="permission_official_holidays" value="both" class="permission-radio both" {% if permissions and permissions.get('main.official_holidays') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_official_holidays" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.official_holidays') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Add Official Holidays -->
+                                    <tr>
+                                        <td>اضافة اجازة رسمية</td>
+                                        <td><input type="radio" name="permission_add_official_holiday" value="both" class="permission-radio both" {% if permissions and permissions.get('main.add_official_holiday') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_add_official_holiday" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.add_official_holiday') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Job Schedule Override -->
+                                    <tr>
+                                        <td>اذونات توقيتات العمل</td>
+                                        <td><input type="radio" name="permission_job_schedule_override" value="both" class="permission-radio both" {% if permissions and permissions.get('main.job_schedule_override') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_job_schedule_override" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.job_schedule_override') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Settings -->
+                                    <tr>
+                                        <td>الاعدادات</td>
+                                        <td><input type="radio" name="permission_admin_settings" value="both" class="permission-radio both" {% if permissions and permissions.get('main.admin_settings') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_admin_settings" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.admin_settings') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                    
+                                    <!-- Face Recognition -->
+                                    <tr>
+                                        <td>تسجيل الحضور</td>
+                                        <td><input type="radio" name="permission_face_recognition" value="both" class="permission-radio both" {% if permissions and permissions.get('main.face_recognition') == 'both' %}checked{% endif %}></td>
+                                        <td><input type="radio" name="permission_face_recognition" value="none" class="permission-radio none" {% if not permissions or permissions.get('main.face_recognition') == 'none' %}checked{% endif %}></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
         
                 <div class="text-right mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">حفظ</button>
@@ -112,12 +253,34 @@
 </div>
 <script>
     // Preview uploaded image
-    document.getElementById('form-photo').onchange = function (evt) {
+    var photoInput = document.getElementById('form-photo');
+    if (photoInput) {
+        photoInput.onchange = function (evt) {
         var [file] = this.files;
         if (file) {
             document.getElementById('photo-preview').src = URL.createObjectURL(file);
         }
     };
+    }
+    
+    // Permission control buttons - Fixed with better selectors
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set all permissions to both
+        document.getElementById('set-all-both').addEventListener('click', function() {
+            var allBothRadios = document.querySelectorAll('input[type="radio"][value="both"]');
+            allBothRadios.forEach(function(radio) {
+                radio.checked = true;
+            });
+        });
+        
+        // Set all permissions to none
+        document.getElementById('set-all-none').addEventListener('click', function() {
+            var allNoneRadios = document.querySelectorAll('input[type="radio"][value="none"]');
+            allNoneRadios.forEach(function(radio) {
+                radio.checked = true;
+            });
+        });
+    });
 </script>
 <style>
     .right {
@@ -196,6 +359,29 @@
     .btn-primary:hover {
         background-color: #45439c;
         border-color: #45439c;
+    }
+    
+    /* Permission section styles */
+    .permission-control {
+        margin-bottom: 15px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    
+    .table {
+        direction: rtl;
+    }
+    
+    .table th, .table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
     }
 
     @keyframes fadeIn {

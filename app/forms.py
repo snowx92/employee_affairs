@@ -7,7 +7,11 @@ from datetime import datetime
 from flask_wtf.file import FileAllowed
 
 from app.models import User
-
+time_choices = [
+    (f'{hour:02d}:{minute:02d}', f'{hour:02d}:{minute:02d}')
+    for hour in range(8, 25)
+    for minute in (0, 15, 30, 45)
+]
 class RegistrationForm(FlaskForm):
     username = StringField('اسم المستخدم', validators=[DataRequired(), Length(min=2, max=20)])
     email = StringField('البريد الالكتروني', validators=[DataRequired(), Email()])
@@ -76,6 +80,8 @@ class EmployeeForm(FlaskForm):
 
     job_type = SelectField('المجموعة الوظيفية', choices=[('اداري', 'اداري'), ('قائم بالتدريس', 'قائم بالتدريس'), ('تخصصي', 'تخصصي') , ('فني', 'فني') , ('كتابي', 'كتابي'), ('حرفي', 'حرفي'), ('خدمة معاونة', 'خدمة معاونة')], validators=[DataRequired()])
     emp_type = SelectField('نوع التعاقد', choices=[('عقد', 'عقد'), ('معين', 'معين')], validators=[DataRequired()])
+    contract_start_date = DateField('تاريخ بداية العقد', format='%Y-%m-%d', validators=[Optional()])
+    contract_end_date = DateField('تاريخ نهاية العقد', format='%Y-%m-%d', validators=[Optional()])
     arda_points = IntegerField('النقاط العارضة')
     sanwya_points = IntegerField('النقاط الاعتيادية')
     tar7eel_points = IntegerField('النقاط المرحلة')
@@ -153,10 +159,10 @@ class EznForm(FlaskForm):
         ('انتداب خارج وزارة الدفاع', 'انتداب خارج وزارة الدفاع')], validators=[DataRequired()])
         
     employee_name = SelectField('اسم الموظف', choices=[], coerce=int, validators=[DataRequired()])
-    
-    from_time = SelectField('من الوقت (HH:MM)', choices=[(f'{i:02d}:00', f'{i:02d}:00') for i in range(8, 25)], validators=[DataRequired()])
-    to_time = SelectField('إلى الوقت (HH:MM)', choices=[(f'{i:02d}:00', f'{i:02d}:00') for i in range(8, 25)], validators=[DataRequired()])
-    
+    date = DateField('التاريخ', format='%Y-%m-%d', default=datetime.today , validators=[DataRequired()])
+    from_time = SelectField('من الوقت (HH:MM)', choices=time_choices, validators=[DataRequired()])
+    to_time = SelectField('إلى الوقت (HH:MM)', choices=time_choices, validators=[DataRequired()])
+        
     submit = SubmitField('إرسال')
     
 class ClinicForm(FlaskForm):
@@ -343,15 +349,27 @@ class UserForm(FlaskForm):
 
     # Custom validation for unique user ID
     def validate_id(self, id):
-        # Ignore uniqueness check if the ID belongs to the user being edited
-        if id.data != self.current_user_id and User.query.filter_by(id=id.data).first():
-            raise ValidationError('This User ID already exists. Please choose a different one.')
+        # For new users, just check if ID already exists
+        if self.current_user_id is None:
+            if User.query.filter_by(id=id.data).first():
+                raise ValidationError('This User ID already exists. Please choose a different one.')
+        else:
+            # For existing users, ignore validation if it's the user's own ID
+            if id.data != self.current_user_id and User.query.filter_by(id=id.data).first():
+                raise ValidationError('This User ID already exists. Please choose a different one.')
 
     # Custom validation for unique email
     def validate_email(self, email):
-        # Ignore uniqueness check if the email belongs to the user being edited
-        if email.data != User.query.get(self.current_user_id).email and User.query.filter_by(email=email.data).first():
-            raise ValidationError('This email is already in use. Please choose a different one.')
+        # Check if this is a new user (self.current_user_id is None)
+        if self.current_user_id is None:
+            # For new users, just check if email already exists
+            if User.query.filter_by(email=email.data).first():
+                raise ValidationError('This email is already in use. Please choose a different one.')
+        else:
+            # For existing users, ignore validation if it's the user's own email
+            current_user = User.query.get(self.current_user_id)
+            if current_user and email.data != current_user.email and User.query.filter_by(email=email.data).first():
+                raise ValidationError('This email is already in use. Please choose a different one.')
 
 
 

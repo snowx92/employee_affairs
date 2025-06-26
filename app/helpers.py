@@ -55,7 +55,8 @@ def handle_attendance_reports(
     date_to=None, 
     include_delay_minutes=False, 
     include_leave_early_time=False,
-    employee_office_name=None
+    employee_office_name=None,
+    count_only=False
 ):
     status_translations = {
         'Pending': 'قيد الموافقة',
@@ -67,6 +68,50 @@ def handle_attendance_reports(
     formatted_date = format_date_to_arabic(today_date)
     arabic_day_name = formatted_date.split(',')[0]
 
+    # If count_only is True, use optimized count queries where possible
+    if count_only:
+        # For no_check_out report
+        if report_type == 'no_check_out':
+            return count_no_check_out_report(id, employee_office_name, date_from, date_to, report_date, period)
+        # For rest report
+        elif report_type == 'rest':
+            return count_rest_report(date_from, date_to, report_date, id, employee_office_name, period)
+        # For agaza reports
+        elif report_type in ['agaza', 'agaza_only', 'fr2a', 'entdab', 'no_salary']:
+            return count_agaza_reports(report_type, id, employee_office_name, date_from, date_to, report_date, period)
+        # For altmas report
+        elif report_type == 'altmas':
+            return count_altmas_report(id, employee_office_name, date_from, date_to, report_date, period)
+        # For ezn report
+        elif report_type == 'ezn':
+            return count_ezn_report(id, employee_office_name, date_from, date_to, report_date, period)
+        # For clinic report
+        elif report_type == 'clinic':
+            return count_clinic_report(id, employee_office_name, date_from, date_to, report_date, period)
+        # For momrya report
+        elif report_type == 'momrya':
+            return count_momrya_report(id, employee_office_name, date_from, date_to, report_date, period)
+        # For other reports, use the standard query but just count the results
+        else:
+            query = build_base_query()
+            query = apply_filters(query, id, employee_office_name, date_from, date_to, report_date, period)
+            
+            # For specific report types, add additional filters
+            if report_type == 'check_in_attendance':
+                return count_check_in_attendance(query)
+            elif report_type == 'check_in_delays':
+                return count_check_in_delays(query)
+            elif report_type == 'check_out_attendance':
+                return count_check_out_attendance(query)
+            elif report_type == 'check_out_ahead':
+                return count_check_out_ahead(query)
+            elif report_type == 'check_all':
+                return count_check_all(query)
+            
+            # Default case: just count the results
+            return query.count()
+
+    # If not count_only, proceed with the standard approach
     query = build_base_query()
     query = apply_filters(query, id, employee_office_name, date_from, date_to, report_date, period)
     report_data = query.order_by(Employee.office_name).all()
@@ -410,7 +455,8 @@ def handle_ezn_report(id, employee_office_name, date_from, date_to, report_date,
         Ezn.submit_date,
         Ezn.approval_status,
         Ezn.out_time,
-        Ezn.back_time
+        Ezn.back_time,
+        Ezn.date
     ).join(
         main_employee, main_employee.id == Ezn.employee_id
     ).filter(
@@ -441,6 +487,7 @@ def handle_ezn_report(id, employee_office_name, date_from, date_to, report_date,
             'Approval Status': translated_status,
             'Out Time': format_time_to_arabic(request_item.out_time) if request_item.out_time else 'لم تسجل بعد',
             'Back Time': format_time_to_arabic(request_item.back_time) if request_item.back_time else 'لم تسجل بعد',
+            'Date': request_item.date.strftime('%Y-%m-%d') if request_item.date else 'لم تسجل بعد',
         })
     return final_report_data
 
@@ -556,8 +603,9 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
             continue
         seen_employees.add(employee_key)
 
-        job_start_time = parse_time_str(row.override_job_start_time) if row.override_job_start_time else parse_time_str(row.job_start_time)
-        job_end_time = parse_time_str(row.override_job_end_time) if row.override_job_end_time else parse_time_str(row.job_end_time)
+        # Use attendance's job times directly instead of employee's times
+        job_start_time = parse_time_str(row.job_start_time)
+        job_end_time = parse_time_str(row.job_end_time)
 
         if report_type == 'check_in_attendance':
             if row.check_in_time:
@@ -570,7 +618,7 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
                         'date': row.att_date,
                         'Employee Name': row.name,
                         'Office': row.office_name,
-                        'check_in_time': parse_time_str(row.job_start_time).strftime('%H:%M:%S'),
+                        'check_in_time': job_start_time.strftime('%H:%M:%S'),
                         'Time': check_in_datetime.strftime('%H:%M:%S'),
                     })
                 else:
@@ -579,7 +627,7 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
                         'date': row.att_date,
                         'Employee Name': row.name,
                         'Office': row.office_name,
-                        'check_in_time': parse_time_str(row.job_start_time).strftime('%H:%M:%S'),
+                        'check_in_time': job_start_time.strftime('%H:%M:%S'),
                         'Time': row.check_in_time,
                     })
             final_report_data = sorted(final_report_data, key=lambda x: datetime.strptime(x['date'], '%Y-%m-%d'))       
@@ -612,6 +660,16 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
             if row.check_in_time and job_start_time:
                 check_in_time = parse_time_str(row.check_in_time)
                 if check_in_time and job_start_time:
+                    # Check if there's a JobScheduleOverride for this employee on this date
+                    schedule_override = JobScheduleOverride.query.filter_by(
+                        employee_id=row.id,
+                        date=row.att_date
+                    ).first()
+                    
+                    # Use the job_start_time from override if available
+                    if schedule_override:
+                        job_start_time = schedule_override.job_start_time
+                    
                     today_date = datetime.today().date()
                     check_in_datetime = datetime.combine(today_date, check_in_time)
                     job_start_datetime = datetime.combine(today_date, job_start_time)
@@ -625,7 +683,7 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
                             'date': row.att_date,
                             'Employee Name': row.name,
                             'Office': row.office_name,
-                            'check_in_time': parse_time_str(row.job_start_time).strftime('%H:%M:%S'),
+                            'check_in_time': job_start_time.strftime('%H:%M:%S'),
                             'Time': check_in_datetime.strftime('%H:%M:%S'),
                             'Delay Time': f"{int(hours):02}:{int(minutes):02}:00",
                         })
@@ -650,6 +708,8 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
                         'Office': row.office_name,
                         'Time': row.check_out_time,
                     })
+       
+       
         elif report_type == 'check_out_ahead' and include_leave_early_time:
             if row.check_out_time and job_end_time:
                 check_out_time = parse_time_str(row.check_out_time)
@@ -667,7 +727,7 @@ def handle_attendance_reports_default(report_data, report_type, include_delay_mi
                             'date': row.att_date,
                             'Employee Name': row.name,
                             'Office': row.office_name,
-                            'check_out_time': parse_time_str(row.job_end_time).strftime('%H:%M:%S'),
+                            'check_out_time': job_end_time.strftime('%H:%M:%S'),
                             'Time': check_out_datetime.strftime('%H:%M:%S'),
                             'Leave Early Time': f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}",
                         })
@@ -1005,22 +1065,55 @@ def generate_employee_query(employee_id):
     # Return the query string
     return query
 def calculate_agaza_duration_this_year(employee_id, current_year, agaza_type=None, submit_date=None, after=None):
+    # Get the employee data
+    employee = Employee.query.get(employee_id)
+    if not employee:
+        return 0
+    
     # Get today's date
     today = datetime.today().date()
 
-    # Determine if today's date is before or after July 1st
-    july_first_current_year = datetime(current_year, 7, 1).date()
+    # Check if employee is a contract employee
+    if employee.emp_type == 'عقد':
+        # For contract employees, use contract start/end dates instead of fiscal year if they exist
+        if employee.contract_start_date and employee.contract_end_date:
+            fiscal_year_start = employee.contract_start_date
+            fiscal_year_end = employee.contract_end_date
+            
+            # If today is past the contract end date, use the contract end date as the end date
+            if today > employee.contract_end_date:
+                fiscal_year_end = employee.contract_end_date
+            
+            print(f"Contract employee: {employee.name}, using contract dates - Start: {fiscal_year_start}, End: {fiscal_year_end}")
+        else:
+            # If contract dates are missing, fall back to standard fiscal year calculation
+            print(f"Contract employee: {employee.name} missing contract dates, using fiscal year")
+            # Determine if today's date is before or after July 1st
+            july_first_current_year = datetime(current_year, 7, 1).date()
 
-    if today >= july_first_current_year:
-        # If today is on or after July 1st, use the current fiscal year (July 1st - June 30th of the next year)
-        fiscal_year_start = july_first_current_year
-        fiscal_year_end = datetime(current_year + 1, 6, 30).date()
+            if today >= july_first_current_year:
+                # If today is on or after July 1st, use the current fiscal year (July 1st - June 30th of the next year)
+                fiscal_year_start = july_first_current_year
+                fiscal_year_end = datetime(current_year + 1, 6, 30).date()
+            else:
+                # If today is before July 1st, use the previous fiscal year (July 1st of the previous year - June 30th of this year)
+                fiscal_year_start = datetime(current_year - 1, 7, 1).date()
+                fiscal_year_end = datetime(current_year, 6, 30).date()
     else:
-        # If today is before July 1st, use the previous fiscal year (July 1st of the previous year - June 30th of this year)
-        fiscal_year_start = datetime(current_year - 1, 7, 1).date()
-        fiscal_year_end = datetime(current_year, 6, 30).date()
+        # For non-contract employees, use standard fiscal year
+        # Determine if today's date is before or after July 1st
+        july_first_current_year = datetime(current_year, 7, 1).date()
 
-    # Build the query to get approved agaza records within the fiscal year
+        if today >= july_first_current_year:
+            # If today is on or after July 1st, use the current fiscal year (July 1st - June 30th of the next year)
+            fiscal_year_start = july_first_current_year
+            fiscal_year_end = datetime(current_year + 1, 6, 30).date()
+        else:
+            # If today is before July 1st, use the previous fiscal year (July 1st of the previous year - June 30th of this year)
+            fiscal_year_start = datetime(current_year - 1, 7, 1).date()
+            fiscal_year_end = datetime(current_year, 6, 30).date()
+
+    # Build the query to get approved agaza records within the fiscal year or contract period
     query = Agaza.query.filter(
         Agaza.employee_id == employee_id,
         Agaza.approval_status == 'Approved',
@@ -1051,7 +1144,7 @@ def calculate_agaza_duration_this_year(employee_id, current_year, agaza_type=Non
 
     # Calculate the duration for each record
     for agaza in agaza_records:
-        # Ensure the agaza dates are within the fiscal year
+        # Ensure the agaza dates are within the fiscal year or contract period
         print('agaza' , agaza)
         from_date = max(agaza.from_date, fiscal_year_start)
         to_date = min(agaza.to_date, fiscal_year_end)
@@ -1065,7 +1158,29 @@ def calculate_agaza_duration_this_year(employee_id, current_year, agaza_type=Non
         # Add the duration to the total
         total_duration += duration
 
+    # For contract employees, calculate the pro-rated leave allocation based on contract duration
+    if employee.emp_type == 'عقد' and employee.contract_start_date and employee.contract_end_date:
+        # Calculate total contract duration in days
+        contract_duration_days = days_between_dates(
+            employee.contract_start_date.strftime('%Y-%m-%d'), 
+            employee.contract_end_date.strftime('%Y-%m-%d')
+        ) + 1
+        
+        # If contract duration is less than a year, adjust the total duration proportionally
+        if contract_duration_days < 365:
+            # Print info for debugging
+            print(f"Contract duration for {employee.name}: {contract_duration_days} days")
+            print(f"Original total_duration: {total_duration}")
+            
+            # Calculate the pro-rated duration (based on contract length compared to full year)
+            prorated_factor = contract_duration_days / 365.0
+            total_duration = min(total_duration, round(total_duration * prorated_factor))
+            
+            print(f"Pro-rated total_duration: {total_duration}")
+
     return total_duration
+
+
 def format_date_to_arabic(date_obj):
     # Dictionary to convert English month names to Arabic
     months_ar = {
@@ -1486,7 +1601,7 @@ def generate_mo2srat_report(from_date, to_date, office=None, employee_id=None , 
             'Office': employee.office_name,
             'Ezn Count': len(employee_data['Ezn']),
             'Clinic Count': len(employee_data['Clinic']),
-            'Check-in Delays Count': len(employee_data['Check-in Delays'])- 1  if delay_data else 0,  # Exclude the last row as it’s the summary
+            'Check-in Delays Count': len(employee_data['Check-in Delays'])- 1  if delay_data else 0,  # Exclude the last row as it's the summary
             'Agaza Emergency Count': len(employee_data['agaza_ded']) if agaza_ded else 0,
             'Agaza Sick Count': agaza_count_sick,
             'Agaza Sick ded': agaza_count_ded,
@@ -1628,3 +1743,333 @@ def manage_agaza():
     finally:
         db.session.close()
         print("Database session closed.")
+
+def get_all_offices():
+    """
+    Get a list of all unique office names from the Employee table.
+    
+    Returns:
+        list: A sorted list of unique office names
+    """
+    try:
+        # Query all unique office_name values from the Employee table
+        offices = db.session.query(Employee.office_name).distinct().all()
+        
+        # Extract the office names from the result tuples and sort them
+        office_names = sorted([office[0] for office in offices if office[0]])
+        
+        return office_names
+    except Exception as e:
+        print(f"Error retrieving offices: {str(e)}")
+        return []
+
+def get_employees_by_office(office_name=None):
+    """
+    Get a list of employees filtered by office name if provided.
+    
+    Args:
+        office_name (str, optional): The name of the office to filter by. If None, returns all employees.
+        
+    Returns:
+        list: A list of Employee objects
+    """
+    try:
+        # Base query to get active employees
+        query = Employee.query.filter_by(active='ظهور')
+        
+        # If office name is provided, add a filter
+        if office_name and office_name != 'all':
+            query = query.filter_by(office_name=office_name)
+        
+        # Execute the query and return the results
+        employees = query.order_by(Employee.name).all()
+        
+        return employees
+    except Exception as e:
+        print(f"Error retrieving employees: {str(e)}")
+        return []
+
+# Helper functions for count-only mode
+def count_no_check_out_report(id, employee_office_name, date_from, date_to, report_date, period):
+    query = db.session.query(func.count(distinct(Employee.id))).join(
+        Attendance,
+        Employee.id == Attendance.employee_id   
+    ).filter(
+        Attendance.check_out_time.is_(None),
+        Attendance.check_in_time.isnot(None),
+        Employee.active == 'ظهور'
+    )
+
+    if id:
+        query = query.filter(Employee.id == id)
+    if employee_office_name:
+        query = query.filter(Employee.office_name == employee_office_name)
+    if date_from and date_to:
+        query = query.filter(Attendance.date.between(date_from, date_to))
+    elif report_date:
+        query = query.filter(Attendance.date == report_date)    
+    if period:
+        query = query.filter(Employee.period == period)
+
+    return query.scalar() or 0
+
+def count_rest_report(date_from, date_to, report_date, id, employee_office_name, period):
+    count = 0
+    if date_from and date_to:
+        start_date = datetime.strptime(date_from, '%Y-%m-%d').date() if isinstance(date_from, str) else date_from
+        end_date = datetime.strptime(date_to, '%Y-%m-%d').date() if isinstance(date_to, str) else date_to
+        current_date = start_date
+        while current_date <= end_date:
+            day_of_week = current_date.weekday()
+            days_map = {0: 'mon', 1: 'tues', 2: 'wed', 3: 'thr', 4: 'fri', 5: 'sat', 6: 'sun'}
+            day_column = days_map.get(day_of_week)
+            if day_column:
+                query = db.session.query(func.count(Employee.id)).filter(
+                    getattr(Employee, day_column) == False,
+                    Employee.active == 'ظهور'
+                )
+                if employee_office_name:
+                    query = query.filter(Employee.office_name == employee_office_name)
+                if id:
+                    query = query.filter(Employee.id == id)
+                if period:
+                    query = query.filter(Employee.period == period)
+                count += query.scalar() or 0
+            current_date += timedelta(days=1)
+    elif report_date:
+        report_date_obj = datetime.strptime(report_date, '%Y-%m-%d').date() if isinstance(report_date, str) else report_date
+        day_of_week = report_date_obj.weekday()
+        days_map = {0: 'mon', 1: 'tues', 2: 'wed', 3: 'thr', 4: 'fri', 5: 'sat', 6: 'sun'}
+        day_column = days_map.get(day_of_week)
+        if day_column:
+            query = db.session.query(func.count(Employee.id)).filter(
+                getattr(Employee, day_column) == False,
+                Employee.active == 'ظهور'
+            )
+            if employee_office_name:
+                query = query.filter(Employee.office_name == employee_office_name)
+            if id:
+                query = query.filter(Employee.id == id)
+            if period:
+                query = query.filter(Employee.period == period)
+            count = query.scalar() or 0
+    
+    return count
+
+def count_agaza_reports(report_type, id, employee_office_name, date_from, date_to, report_date, period):
+    query = db.session.query(func.count(distinct(Agaza.id))).join(
+        Employee, 
+        Agaza.employee_id == Employee.id
+    ).filter(
+        Employee.active == 'ظهور',
+        Agaza.manager_approval_status == 'Approved',
+        Agaza.president_approval_status == 'Approved'
+    )
+    
+    if report_type == 'agaza':
+        query = query.filter(Agaza.type.in_(['أعتيادية', 'عارضة', 'عارضة طارئة', 'مرضية', 'بدل راحه', 'اجازة بدل انصراف']))
+    elif report_type == 'agaza_only':
+        query = query.filter(Agaza.type.in_(['أعتيادية', 'عارضة', 'عارضة طارئة', 'مرضية', 'بدل راحه', 'اجازة بدل انصراف']))
+    elif report_type == 'fr2a':
+        query = query.filter(Agaza.type == 'فرقة تعليمية')
+    elif report_type == 'entdab':
+        query = query.filter(Agaza.type == 'انتداب')
+    elif report_type == 'no_salary':
+        query = query.filter(Agaza.type == 'اجازة بدون مرتب')
+    
+    if id:
+        query = query.filter(Employee.id == id)
+    if employee_office_name:
+        query = query.filter(Employee.office_name == employee_office_name)
+    if date_from and date_to:
+        query = query.filter(
+            or_(
+                and_(Agaza.from_date <= date_to, Agaza.to_date >= date_from),
+                and_(Agaza.from_date >= date_from, Agaza.to_date <= date_to)
+            )
+        )
+    elif report_date:
+        query = query.filter(
+            and_(
+                Agaza.from_date <= report_date,
+                Agaza.to_date >= report_date
+            )
+        )
+    if period:
+        query = query.filter(Employee.period == period)
+    
+    return query.scalar() or 0
+
+def count_altmas_report(id, employee_office_name, date_from, date_to, report_date, period):
+    query = db.session.query(func.count(distinct(Altmas.id))).join(
+        Employee, 
+        Altmas.employee_id == Employee.id
+    ).filter(
+        Employee.active == 'ظهور'
+    )
+    
+    if id:
+        query = query.filter(Employee.id == id)
+    if employee_office_name:
+        query = query.filter(Employee.office_name == employee_office_name)
+    if date_from and date_to:
+        query = query.filter(Altmas.date.between(date_from, date_to))
+    elif report_date:
+        query = query.filter(Altmas.date == report_date)
+    if period:
+        query = query.filter(Employee.period == period)
+    
+    return query.scalar() or 0
+
+def count_ezn_report(id, employee_office_name, date_from, date_to, report_date, period):
+    query = db.session.query(func.count(distinct(Ezn.id))).join(
+        Employee, 
+        Ezn.employee_id == Employee.id
+    ).filter(
+        Employee.active == 'ظهور',
+        Ezn.manager_approval_status == 'Approved'
+    )
+    
+    if id:
+        query = query.filter(Employee.id == id)
+    if employee_office_name:
+        query = query.filter(Employee.office_name == employee_office_name)
+    if date_from and date_to:
+        query = query.filter(Ezn.date.between(date_from, date_to))
+    elif report_date:
+        query = query.filter(Ezn.date == report_date)
+    if period:
+        query = query.filter(Employee.period == period)
+    
+    return query.scalar() or 0
+
+def count_clinic_report(id, employee_office_name, date_from, date_to, report_date, period):
+    query = db.session.query(func.count(distinct(Clinic.id))).join(
+        Employee, 
+        Clinic.employee_id == Employee.id
+    ).filter(
+        Employee.active == 'ظهور',
+        Clinic.manager_approval_status == 'Approved'
+    )
+    
+    if id:
+        query = query.filter(Employee.id == id)
+    if employee_office_name:
+        query = query.filter(Employee.office_name == employee_office_name)
+    if date_from and date_to:
+        query = query.filter(Clinic.date.between(date_from, date_to))
+    elif report_date:
+        query = query.filter(Clinic.date == report_date)
+    if period:
+        query = query.filter(Employee.period == period)
+    
+    return query.scalar() or 0
+
+def count_momrya_report(id, employee_office_name, date_from, date_to, report_date, period):
+    query = db.session.query(func.count(distinct(Momrya.id))).join(
+        Employee, 
+        Momrya.employee_id == Employee.id
+    ).filter(
+        Employee.active == 'ظهور',
+        Momrya.manager_approval_status == 'Approved'
+    )
+    
+    if id:
+        query = query.filter(Employee.id == id)
+    if employee_office_name:
+        query = query.filter(Employee.office_name == employee_office_name)
+    if date_from and date_to:
+        query = query.filter(
+            or_(
+                and_(Momrya.date <= date_to, Momrya.to_date >= date_from),
+                and_(Momrya.date >= date_from, Momrya.to_date <= date_to)
+            )
+        )
+    elif report_date:
+        query = query.filter(
+            and_(
+                Momrya.date <= report_date,
+                Momrya.to_date >= report_date
+            )
+        )
+    if period:
+        query = query.filter(Employee.period == period)
+    
+    return query.scalar() or 0
+
+def count_check_in_attendance(query):
+    # Count employees who checked in on time
+    return query.filter(
+        or_(
+            # With override time
+            and_(
+                JobScheduleOverride.job_start_time.isnot(None),
+                Attendance.check_in_time <= JobScheduleOverride.job_start_time
+            ),
+            # Without override time
+            and_(
+                JobScheduleOverride.job_start_time.is_(None),
+                Attendance.check_in_time <= Employee.job_start_time
+            )
+        )
+    ).count()
+
+def count_check_in_delays(query):
+    # Count employees who arrived late
+    return query.filter(
+        or_(
+            # With override time
+            and_(
+                JobScheduleOverride.job_start_time.isnot(None),
+                Attendance.check_in_time > JobScheduleOverride.job_start_time
+            ),
+            # Without override time
+            and_(
+                JobScheduleOverride.job_start_time.is_(None),
+                Attendance.check_in_time > Employee.job_start_time
+            )
+        )
+    ).count()
+
+def count_check_out_attendance(query):
+    # Count employees who checked out on time
+    return query.filter(
+        Attendance.check_out_time.isnot(None),
+        or_(
+            # With override time
+            and_(
+                JobScheduleOverride.job_end_time.isnot(None),
+                Attendance.check_out_time >= JobScheduleOverride.job_end_time
+            ),
+            # Without override time
+            and_(
+                JobScheduleOverride.job_end_time.is_(None),
+                Attendance.check_out_time >= Employee.job_end_time
+            )
+        )
+    ).count()
+
+def count_check_out_ahead(query):
+    # Count employees who left early
+    return query.filter(
+        Attendance.check_out_time.isnot(None),
+        or_(
+            # With override time
+            and_(
+                JobScheduleOverride.job_end_time.isnot(None),
+                Attendance.check_out_time < JobScheduleOverride.job_end_time
+            ),
+            # Without override time
+            and_(
+                JobScheduleOverride.job_end_time.is_(None),
+                Attendance.check_out_time < Employee.job_end_time
+            )
+        )
+    ).count()
+
+def count_check_all(query):
+    # Count employees who checked in and out
+    return query.filter(
+        Attendance.check_in_time.isnot(None),
+        Attendance.check_out_time.isnot(None)
+    ).count()

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الموظف: {{ employee.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+            direction: rtl;
+            text-align: right;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .logo {
+            max-width: 120px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 22px;
+            color: #333;
+        }
+        .employee-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .info-label {
+            font-weight: bold;
+            width: 150px;
+        }
+        .info-value {
+            flex: 1;
+        }
+        .report-section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .summary-box {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            margin-bottom: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        .contract-warning {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ffc107;
+        }
+        @media print {
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>تقرير التاريخ الوظيفي</h1>
+        <p>الفترة من {{ date_from }} إلى {{ date_to }}</p>
+    </div>
+
+    <div class="employee-info">
+        <div class="info-row">
+            <div class="info-label">اسم الموظف:</div>
+            <div class="info-value">{{ employee.name }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الرقم الوظيفي:</div>
+            <div class="info-value">{{ employee.id }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">القسم:</div>
+            <div class="info-value">{{ employee.department.name if employee.department else "غير محدد" }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">المسمى الوظيفي:</div>
+            <div class="info-value">{{ employee.job_title }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">نوع التعاقد:</div>
+            <div class="info-value">
+                {% if employee.is_contracted %}
+                تعاقد
+                {% if employee.contract_end_date %}
+                <span>(ينتهي في {{ employee.contract_end_date_formatted }})</span>
+                {% endif %}
+                {% else %}
+                موظف دائم
+                {% endif %}
+            </div>
+        </div>
+        {% if employee.is_contracted and employee.contract_end_date %}
+            {% set days_remaining = employee.days_until_contract_end %}
+            {% if days_remaining <= 30 %}
+                <div class="contract-warning">
+                    <strong>تنبيه!</strong> ينتهي العقد خلال {{ days_remaining }} يوم.
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if report_type == 'overview' %}
+        <div class="report-section">
+            <h2 class="section-title">رصيد الإجازات</h2>
+            <div class="summary-box">
+                <div class="summary-item">
+                    <strong>رصيد الإجازات السنوية:</strong> {{ leave_balances.annual_leave }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>رصيد الإجازات المرضية:</strong> {{ leave_balances.sick_leave }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>رصيد إجازات الطوارئ:</strong> {{ leave_balances.emergency_leave }} يوم
+                </div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <h2 class="section-title">إحصائيات الحضور ({{ stats.period_days }} يوم)</h2>
+            <div class="summary-box">
+                <div class="summary-item">
+                    <strong>أيام العمل:</strong> {{ stats.working_days }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>أيام الحضور:</strong> {{ stats.attendance_days }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>أيام الغياب:</strong> {{ stats.absent_days }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>أيام الإجازات:</strong> {{ stats.leave_days }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>أيام المأموريات:</strong> {{ stats.mission_days }} يوم
+                </div>
+                <div class="summary-item">
+                    <strong>عدد التأخيرات:</strong> {{ stats.delays_count }} مرة
+                </div>
+                <div class="summary-item">
+                    <strong>عدد الأذونات:</strong> {{ stats.permission_count }} مرة
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'check_in_delays' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير التأخيرات</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>وقت الحضور</th>
+                        <th>مدة التأخير</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.date }}</td>
+                        <td>{{ record.check_in_time }}</td>
+                        <td>{{ record.delay_duration }}</td>
+                        <td>{{ record.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'momrya' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير المأموريات</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>من تاريخ</th>
+                        <th>إلى تاريخ</th>
+                        <th>الجهة</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.start_date }}</td>
+                        <td>{{ record.end_date }}</td>
+                        <td>{{ record.destination }}</td>
+                        <td>{{ record.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'ezn' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير الأذونات</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>من</th>
+                        <th>إلى</th>
+                        <th>المدة</th>
+                        <th>السبب</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.date }}</td>
+                        <td>{{ record.start_time }}</td>
+                        <td>{{ record.end_time }}</td>
+                        <td>{{ record.duration }}</td>
+                        <td>{{ record.reason or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'agaza' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير الإجازات</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>النوع</th>
+                        <th>من تاريخ</th>
+                        <th>إلى تاريخ</th>
+                        <th>عدد الأيام</th>
+                        <th>السبب</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.leave_type }}</td>
+                        <td>{{ record.start_date }}</td>
+                        <td>{{ record.end_date }}</td>
+                        <td>{{ record.days }}</td>
+                        <td>{{ record.reason or '-' }}</td>
+                        <td>{{ record.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'clinic' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير العيادة</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>وقت الدخول</th>
+                        <th>وقت الخروج</th>
+                        <th>السبب</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.date }}</td>
+                        <td>{{ record.entry_time }}</td>
+                        <td>{{ record.exit_time }}</td>
+                        <td>{{ record.reason }}</td>
+                        <td>{{ record.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'altmas' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير الالتماسات</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>التفاصيل</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.date }}</td>
+                        <td>{{ record.request_type }}</td>
+                        <td>{{ record.details }}</td>
+                        <td>{{ record.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_type == 'absent' and report_data %}
+        <div class="report-section">
+            <h2 class="section-title">تقرير الغياب</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>اليوم</th>
+                        <th>الحالة</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td>{{ record.date }}</td>
+                        <td>{{ record.day_name }}</td>
+                        <td>{{ record.status }}</td>
+                        <td>{{ record.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>تم إنشاء هذا التقرير في {{ generation_time }}</p>
+        <p>نظام إدارة شؤون الموظفين</p>
+    </div>
+</body>
+</html> 

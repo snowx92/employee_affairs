@@ -410,7 +410,7 @@ height: 10px;
 select , input[type=date].form-control {
     background-color: #ffffff !important; /* Background color of the select box */
     border: 1px solid #7da0fa !important; /* Border color for the select box */
-    color: #000 !important; /* Text color */
+    color: #7da0fa !important; /* Text color */
     font-size: 20px!important; /* Font size */
     height: 60px !important;
     padding: 10px; /* Padding inside the select box */
@@ -434,7 +434,7 @@ option:hover {
 
 /* Style for selected option (only in modern browsers, limited support) */
 select option:checked {
-    color: #000; /* Primary color for selected option */
+    color: #7da0fa; /* Primary color for selected option */
 }
 select option:disabled{
 

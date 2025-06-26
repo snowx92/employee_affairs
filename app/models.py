@@ -43,6 +43,83 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100))
     photo = db.Column(db.String(100))
     office = db.Column(db.String(50))
+    
+    # Add relationship to permissions
+    permissions = db.relationship('Permission', backref='user', lazy=True)
+    
+    def has_permission(self, route_name, permission_type=None):
+        """Check if user has a specific permission for a route
+        
+        Args:
+            route_name: The route name (e.g. 'main.admin_dashboard')
+            permission_type: The type of permission ('read', 'write', or 'both').
+                            If None, checks if any permission exists
+                            
+        Returns:
+            bool: True if the user has the requested permission, False otherwise
+        """
+        # Admin users have all permissions by default
+        if self.user_type == 'admin':
+            return True
+            
+        # For other users, check specific permissions
+        for permission in self.permissions:
+            if permission.route_name == route_name:
+                # If no specific permission type is requested, any permission is sufficient
+                if permission_type is None:
+                    return True
+                    
+                # Check for specific permission type
+                if permission_type == 'read' and permission.permission_type in ['read', 'both']:
+                    return True
+                if permission_type == 'write' and permission.permission_type in ['write', 'both']:
+                    return True
+                if permission_type == 'both' and permission.permission_type == 'both':
+                    return True
+                    
+        return False
+    
+    def get_permission_type(self, route_name):
+        """Get the permission type for a specific route
+        
+        Args:
+            route_name: The route name (e.g. 'main.admin_dashboard')
+            
+        Returns:
+            str: The permission type ('read', 'write', 'both', or None if no permission)
+        """
+        # Admin users have all permissions by default
+        if self.user_type == 'admin':
+            return 'both'
+            
+        # For other users, get specific permission
+        # Use SQLAlchemy query to fetch directly, which should be more efficient
+        permission = Permission.query.filter_by(
+            user_id=self.id,
+            route_name=route_name
+        ).first()
+        
+        if permission:
+            return permission.permission_type
+            
+        return None
+
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    route_name = db.Column(db.String(100), nullable=False)
+    permission_type = db.Column(db.String(20), nullable=False)  # 'read', 'write', 'admin', etc.
+    
+    # Add unique constraint to avoid duplicate permissions
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'route_name', name='uix_user_route'),
+    )
+    
+    def __repr__(self):
+        return f'<Permission {self.user_id} - {self.route_name} - {self.permission_type}>'
+    
 # Employee model
 class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,6 +159,8 @@ class Employee(db.Model):
 
     job_type = db.Column(db.String(50))
     emp_type = db.Column(db.String(50))
+    contract_start_date = db.Column(db.Date, nullable=True)
+    contract_end_date = db.Column(db.Date, nullable=True)
     grade = db.Column(db.String(50))
     level = db.Column(db.String(50))
     arda_points = db.Column(db.Integer , nullable=False)
@@ -99,6 +178,8 @@ class Attendance(db.Model):
     period = db.Column(db.String(50), nullable=False)
     check_in_time = db.Column(db.Time )
     check_out_time = db.Column(db.Time)
+    job_start_time=db.Column(db.Time)
+    job_end_time=db.Column(db.Time)
     
 class OfficialHoliday(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -157,7 +238,7 @@ class Ezn(db.Model):
     back_time = db.Column(db.Time, nullable=False)
     submit_date = db.Column(db.Date, nullable=False)
     approval_status = db.Column(db.String(50), default='Pending')
-
+    date = db.Column(db.Date, nullable=False)
     employee = db.relationship('Employee', backref=db.backref('ezns', lazy=True))
 
 class Agaza(db.Model):

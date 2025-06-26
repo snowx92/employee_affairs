@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Debug output to see what permissions are being passed -->
+
+
 <style>
     hr {
         border: none;
@@ -55,212 +58,167 @@
                 <hr class="my-4">
                 <ul class="nav flex-column">
 
-                    {% if user_type == 'manager' %}
-
-                    <li class="nav-item"></li>
+                    {% if user_permissions and user_permissions.get('main.admin_dashboard') in ['read', 'write', 'both'] %}
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.admin_dashboard' %}active{% endif %}" href="{{ url_for('main.admin_dashboard') }}">
                             <i class="fas fa-tachometer-alt"></i> لوحة القيادة
-                        </a>
-                    </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
-                                <i class="fa-solid fa-check-circle"></i>
-                                التصديقات والمتابعات
-                            </a>
-                        </li>
-
-
-                        <a class="nav-link {% if request.endpoint == 'main.admin_reports' %}active{% endif %}" href="{{ url_for('main.admin_reports') }}">
-                            <i class="fa-regular fa-newspaper"></i> التقرير اليومية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.employee_report' %}active{% endif %}" href="{{ url_for('main.employee_report') }}">
-                            <i class="fa-regular fa-newspaper"></i> تقارير الموظفين
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.employee_rates' %}active{% endif %}" href="{{ url_for('main.employee_rates') }}">
-                            <i class="fa-solid fa-face-smile"></i> تقيمات الموظفين
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
-                            <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
-                            <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
-                            <i class="fas fa-cogs"></i> الاعدادات
                         </a>
                     </li>
                     {% endif %}
-
-                    {% if user_type == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.admin_dashboard' %}active{% endif %}" href="{{ url_for('main.admin_dashboard') }}">
-                            <i class="fas fa-tachometer-alt"></i> لوحة القيادة
-                        </a>
-                    </li>
+                    
+                    {% if user_permissions and user_permissions.get('main.admin_users') in ['read', 'write', 'both'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.admin_users' %}active{% endif %}" href="{{ url_for('main.admin_users') }}">
                             <i class="fas fa-users"></i> الموظفين
                         </a>
                     </li>
+                    {% endif %}
 
+                    {% if user_permissions and (user_permissions.get('main.add_request') in ['read', 'write', 'both'] or user_permissions.get('main.requests_veiws') in ['read', 'write', 'both']) %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.employee_affairs' %}active{% endif %}" href="#employeeAffairsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
                             <i class="fa-solid fa-users-gear"></i> شئون عاملين
                             <i class="fas fa-chevron-down float-right"></i>
                         </a>
                         <ul class="collapse list-unstyled" id="employeeAffairsSubmenu">
+                            {% if user_permissions and user_permissions.get('main.add_request') in ['read', 'write', 'both'] %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'main.add_request' %}active{% endif %}" href="{{ url_for('main.add_request') }}">
                                     <i class="fa-solid fa-file-alt"></i>
                                     الطلبات
                                 </a>
                             </li>
+                            {% endif %}
+                            
+                            {% if user_permissions and user_permissions.get('main.requests_veiws') in ['read', 'write', 'both'] %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
                                     <i class="fa-solid fa-check-circle"></i>
                                     التصديقات والمتابعات
                                 </a>
                             </li>
+                            {% endif %}
                         </ul>
                     </li>
+                    {% endif %}
+                    
+                    {% set has_report_permissions = False %}
+                    {% if user_permissions %}
+                        {% if user_permissions.get('main.admin_reports') in ['read', 'write', 'both'] or
+                           user_permissions.get('main.employee_report') in ['read', 'write', 'both'] or
+                           user_permissions.get('main.mo2srat') in ['read', 'write', 'both'] or
+                           user_permissions.get('main.tmam') in ['read', 'write', 'both'] %}
+                           {% set has_report_permissions = True %}
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if has_report_permissions %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.employee_affairs' %}active{% endif %}" href="#report" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
                             <i class="fa-regular fa-folder-open"></i> التقارير
                             <i class="fas fa-chevron-down float-right"></i>
                         </a>
-                    <ul class="collapse list-unstyled" id="report">   
+                    <ul class="collapse list-unstyled" id="report">
+                    
+                    {% if user_permissions and user_permissions.get('main.admin_reports') in ['read', 'write', 'both'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.admin_reports' %}active{% endif %}" href="{{ url_for('main.admin_reports') }}">
                             <i class="fa-regular fa-newspaper"></i> التقارير اليومية
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    {% if user_permissions and user_permissions.get('main.employee_report') in ['read', 'write', 'both'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.employee_report' %}active{% endif %}" href="{{ url_for('main.employee_report') }}">
                             <i class="fa-solid fa-users"></i> تقارير الموظفين
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    {% if user_permissions and user_permissions.get('main.mo2srat') in ['read', 'write', 'both'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.mo2srat' %}active{% endif %}" href="{{ url_for('main.mo2srat') }}">
                             <i class="fa-solid fa-circle-minus"></i> المؤثرات
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    {% if user_permissions and user_permissions.get('main.tmam') in ['read', 'write', 'both'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.tmam' %}active{% endif %}" href="{{ url_for('main.tmam') }}">
                             <i class="fa-solid fa-users-rays"></i> التمام اليومي
                         </a>
                     </li>
+                    {% endif %}
+                    
                   </ul>
                 </li>
-                {% if user_office == 'المدير'  or user_office == 'متابعة المدير' or user_office == 'تشغيل الحواسب' %}
+                {% endif %}
+
+                {% if user_permissions and user_permissions.get('main.attendnce_sign') in ['read', 'write', 'both'] %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'main.attendnce_sign' %}active{% endif %}" href="{{ url_for('main.attendnce_sign') }}">
                         <i class="fa-solid fa-camera"></i> تسجيلات الحضور
                     </a>
                 </li>
+                {% endif %}
+                
+                {% if user_permissions and user_permissions.get('main.users') in ['read', 'write', 'both'] %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'main.users' %}active{% endif %}" href="{{ url_for('main.users') }}">
                         <i class="fa-solid fa-users-rectangle"></i> الحسابات
                     </a>
                 </li>
                 {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.Deduction' %}active{% endif %}" href="{{ url_for('main.Deduction') }}">
-                            <i class="fa-solid fa-circle-minus"></i> جزائات الموظفين
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.employee_rates' %}active{% endif %}" href="{{ url_for('main.employee_rates') }}">
-                            <i class="fa-solid fa-face-smile"></i> تقيمات الموظفين
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
-                            <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
-                            <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
-                            <i class="fas fa-cogs"></i> الاعدادات
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% if user_type == 'employee' %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.admin_dashboard' %}active{% endif %}" href="{{ url_for('main.admin_dashboard') }}">
-                            <i class="fas fa-tachometer-alt"></i> القائمة الرئيسية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.employee_report' %}active{% endif %}" href="{{ url_for('main.employee_report') }}">
-                            <i class="fa-regular fa-newspaper"></i> تقارير الموظف
-                        </a>
-                    </li>
+                
+                {% if user_permissions and user_permissions.get('main.Deduction') in ['read', 'write', 'both'] %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.Deduction' %}active{% endif %}" href="{{ url_for('main.Deduction') }}">
+                        <i class="fa-solid fa-circle-minus"></i> جزائات الموظفين
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if user_permissions and user_permissions.get('main.employee_rates') in ['read', 'write', 'both'] %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.employee_rates' %}active{% endif %}" href="{{ url_for('main.employee_rates') }}">
+                        <i class="fa-solid fa-face-smile"></i> تقيمات الموظفين
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if user_permissions and user_permissions.get('main.official_holidays') in ['read', 'write', 'both'] %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
+                        <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if user_permissions and user_permissions.get('main.job_schedule_override') in ['read', 'write', 'both'] %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
+                        <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if user_permissions and user_permissions.get('main.admin_settings') in ['read', 'write', 'both'] %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
+                        <i class="fas fa-cogs"></i> الاعدادات
+                    </a>
+                </li>
+                {% endif %}
 
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.employee_affairs' %}active{% endif %}" href="#employeeAffairsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
-                            <i class="fa-solid fa-users-gear"></i> شئون عاملين
-                            <i class="fas fa-chevron-down float-right"></i>
-                        </a>
-                        <ul class="collapse list-unstyled" id="employeeAffairsSubmenu">
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'main.add_request' %}active{% endif %}" href="{{ url_for('main.add_request') }}">
-                                    <i class="fa-solid fa-file-alt"></i>
-                                    الطلبات
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
-                                    <i class="fa-solid fa-check-circle"></i>
-                                    التصديقات والمتابعات
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.official_holidays' %}active{% endif %}" href="{{ url_for('main.official_holidays') }}">
-                            <i class="fa-solid fa-person-circle-plus"></i> الاجازات الرسمية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.job_schedule_override' %}active{% endif %}" href="{{ url_for('main.job_schedule_override') }}">
-                            <i class="fa-solid fa-calendar-days"></i> اذونات توقيتات العمل 
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.admin_settings' %}active{% endif %}" href="{{ url_for('main.admin_settings') }}">
-                            <i class="fas fa-cogs"></i> الاعدادات
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% if user_type == 'attendence' %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.requests_veiws' %}active{% endif %}" href="{{ url_for('main.requests_veiws') }}">
-                            <i class="fa-solid fa-check-circle"></i>
-                            التصديقات والمتابعات
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'main.face_recognition' %}active{% endif %}" href="{{ url_for('main.face_recognition') }}">
-                            <i class="fa-solid fa-video"></i> تسجيل الحضور
-                        </a>
-                    </li>
-                    {% endif %}
+                {% if user_permissions and user_permissions.get('main.face_recognition') in ['read', 'write', 'both'] %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'main.face_recognition' %}active{% endif %}" href="{{ url_for('main.face_recognition') }}">
+                        <i class="fa-solid fa-video"></i> تسجيل الحضور
+                    </a>
+                </li>
+                {% endif %}
 
                 </ul>
             </div>

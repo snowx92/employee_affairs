@@ -43,10 +43,10 @@
                     <h3 class="section-title">المعلومات الشخصية</h3>
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control") }}
-                            {% if form.username.errors %}
-                                <div class="text-danger">{{ form.username.errors[0] }}</div>
+                            {{ form.nat_id.label(class="form-label") }}
+                            {{ form.nat_id(class="form-control", id="nat_id") }}
+                            {% if form.nat_id.errors %}
+                                <div class="text-danger">{{ form.nat_id.errors[0] }}</div>
                             {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
@@ -57,10 +57,10 @@
                             {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
-                            {{ form.nat_id.label(class="form-label") }}
-                            {{ form.nat_id(class="form-control") }}
-                            {% if form.nat_id.errors %}
-                                <div class="text-danger">{{ form.nat_id.errors[0] }}</div>
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control", id="username") }}
+                            {% if form.username.errors %}
+                                <div class="text-danger">{{ form.username.errors[0] }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -131,9 +131,25 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.emp_type.label(class="form-label") }}
-                            {{ form.emp_type(class="form-select custom-select") }}
+                            {{ form.emp_type(class="form-select custom-select", id="emp_type") }}
                             {% if form.emp_type.errors %}
                                 <div class="text-danger">{{ form.emp_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row" id="contract_dates_section" style="display: none;">
+                        <div class="col-md-4 mb-3">
+                            {{ form.contract_start_date.label(class="form-label") }}
+                            {{ form.contract_start_date(class="form-control") }}
+                            {% if form.contract_start_date.errors %}
+                                <div class="text-danger">{{ form.contract_start_date.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.contract_end_date.label(class="form-label") }}
+                            {{ form.contract_end_date(class="form-control") }}
+                            {% if form.contract_end_date.errors %}
+                                <div class="text-danger">{{ form.contract_end_date.errors[0] }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -147,7 +163,7 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.employment_id.label(class="form-label") }}
-                            {{ form.employment_id(class="form-control") }}
+                            {{ form.employment_id(class="form-control", id="employment_id") }}
                             {% if form.employment_id.errors %}
                                 <div class="text-danger">{{ form.employment_id.errors[0] }}</div>
                             {% endif %}
@@ -389,4 +405,60 @@
         animation: fadeIn 0.5s ease-out;
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const empTypeSelect = document.getElementById('emp_type');
+        const contractDatesSection = document.getElementById('contract_dates_section');
+        
+        // Function to toggle contract dates visibility
+        function toggleContractDates() {
+            if (empTypeSelect.value === 'عقد') {
+                contractDatesSection.style.display = 'flex';
+            } else {
+                contractDatesSection.style.display = 'none';
+            }
+        }
+        
+        // Initial check when page loads
+        toggleContractDates();
+        
+        // Add event listener for changes
+        empTypeSelect.addEventListener('change', toggleContractDates);
+
+        // National ID auto-fill functionality
+        const natIdInput = document.getElementById('nat_id');
+        const usernameInput = document.getElementById('username');
+        const employmentIdInput = document.getElementById('employment_id');
+
+        // Function to extract last 7 digits and auto-fill
+        function handleNationalIdChange() {
+            const natId = natIdInput.value.trim();
+            
+            // Only proceed if we have at least 7 digits
+            if (natId.length >= 7) {
+                // Extract last 7 digits
+                const last7Digits = natId.slice(-7);
+                
+                // Only auto-fill if the fields are empty or match previous auto-fill
+                if (!usernameInput.value || usernameInput.value === usernameInput.getAttribute('data-auto-filled')) {
+                    usernameInput.value = last7Digits;
+                    usernameInput.setAttribute('data-auto-filled', last7Digits);
+                }
+                
+                if (!employmentIdInput.value || employmentIdInput.value === employmentIdInput.getAttribute('data-auto-filled')) {
+                    employmentIdInput.value = last7Digits;
+                    employmentIdInput.setAttribute('data-auto-filled', last7Digits);
+                }
+            }
+        }
+
+        // Add event listeners
+        natIdInput.addEventListener('input', handleNationalIdChange);
+        natIdInput.addEventListener('change', handleNationalIdChange);
+        
+        // Initial check when page loads (in case of pre-filled values)
+        handleNationalIdChange();
+    });
+</script>
 {% endblock %}

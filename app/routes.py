@@ -6,9 +6,10 @@ import traceback
 from flask import Blueprint, json, logging, render_template, session, url_for, flash, redirect, request , jsonify ,current_app ,Response
 import pandas as pd
 from flask_login import login_user, current_user, logout_user, login_required
+
 from app import  bcrypt, create_app
 from app.forms import MomryaForm, RegistrationForm, LoginForm, EmployeeForm , HolidayForm, UserForm , UserSettingsForm , JobScheduleOverrideForm , AgazaForm ,AltmasForm ,ClinicForm ,EznForm
-from app.models import Appear, EmployeeRates, Momrya, User, Employee, Attendance , OfficialHoliday  ,JobScheduleOverride , Ezn , Clinic , Agaza , Altmas , Approvals , Deduction as DED
+from app.models import Appear, EmployeeRates, Momrya, User, Employee, Attendance , OfficialHoliday  ,JobScheduleOverride , Ezn , Clinic , Agaza , Altmas , Approvals , Deduction as DED, Permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import case, func , String , and_, or_
 from datetime import datetime, timedelta, timezone , time
@@ -22,6 +23,8 @@ from app.Face_Recognition.scripts.frame_generator import generate_frames
 from sqlalchemy.exc import NoResultFound
 import time as time_module
 from sqlalchemy import case, func , String , and_, or_ , exc
+from sqlalchemy import text
+from app.utils import permission_required
 
 main = Blueprint('main', __name__)
 
@@ -106,6 +109,7 @@ def logout():
 
 @main.route('/admin_dashboard')
 @login_required
+@permission_required('read')
 def admin_dashboard():
     print("current_user current_user" , current_user)
     today = datetime.today().date()
@@ -254,6 +258,7 @@ def admin_dashboard():
 
 @main.route('/settings', methods=['GET', 'POST'])
 @login_required
+@permission_required('read')
 def admin_settings():
     form = UserSettingsForm(obj=current_user)
 
@@ -299,11 +304,13 @@ def admin_settings():
 
 @main.route('/reports')
 @login_required
+@permission_required('read')
 def admin_reports():
     return render_template('emplooye_affairs_admin/reports.html' ,  user_type=current_user.user_type ,user_office=current_user.office)
 
 @main.route('/admin_users')
 @login_required
+@permission_required('read')
 def admin_users():
     employees = Employee.query.all()
     return render_template('emplooye_affairs_admin/admin_users.html', employees=employees ,  user_type=current_user.user_type  ,user_office=current_user.office)
@@ -314,214 +321,284 @@ def add_employee():
     form = EmployeeForm()
     employee_id = request.args.get('employee_id')
     employee = None
-    temp = 0
+    
+    # Helper function to populate form with employee data
+    def populate_form_from_employee(employee, form):
+        # Personal information (order matters for the auto-fill functionality)
+        form.nat_id.data = employee.nat_id
+        form.name.data = employee.name
+        form.username.data = employee.username
+        
+        # Working times
+        form.job_start_time.data = employee.job_start_time.strftime('%H:%M')
+        form.job_end_time.data = employee.job_end_time.strftime('%H:%M')
+        
+        # Working days
+        form.sat.data = employee.sat
+        form.sun.data = employee.sun
+        form.mon.data = employee.mon
+        form.tues.data = employee.tues
+        form.wed.data = employee.wed
+        form.thr.data = employee.thr
+        form.fri.data = employee.fri
+        
+        # Education and certification
+        form.certificate.data = employee.certificate
+        form.graduation_year.data = employee.graduation_year
+        
+        # Format employment start year if needed
+        if isinstance(employee.employment_start_year, str):
+            try:
+                if len(employee.employment_start_year) == 4:  # Only a year
+                    employee.employment_start_year = datetime.strptime(employee.employment_start_year, '%Y')
+                else:  # Full date
+                    employee.employment_start_year = datetime.strptime(employee.employment_start_year, '%Y-%m-%d')
+            except ValueError as e:
+                flash(f'Value Error: {e}', 'danger')
+        form.employment_start_year.data = employee.employment_start_year
+        
+        # Office and job details
+        form.office_name.data = employee.office_name
+        form.period.data = employee.period
+        form.employment_id.data = employee.employment_id
+        
+        # Format birth date if needed
+        if isinstance(employee.birth_date, str):
+            try:
+                if len(employee.birth_date) == 4:  # Only a year
+                    employee.birth_date = datetime.strptime(employee.birth_date, '%Y')
+                else:  # Full date
+                    employee.birth_date = datetime.strptime(employee.birth_date, '%Y-%m-%d')
+            except ValueError as e:
+                flash(f'Value Error: {e}', 'danger')
+        form.birth_date.data = employee.birth_date if employee.birth_date else ''
+        
+        # Additional personal information
+        form.address.data = employee.address
+        form.phone_number.data = employee.phone_number
+        form.sec_phone_number.data = employee.sec_phone_number
+        form.gender.data = employee.gender
+        form.exp.data = employee.exp
+        form.exp_type.data = employee.exp_type
+        form.social.data = employee.social
+        form.religion.data = employee.religion
+        
+        # Job information
+        form.job_name_modli.data = employee.job_name_modli
+        form.level.data = employee.level
+        form.grade.data = employee.grade
+        form.job_type.data = employee.job_type
+        form.emp_type.data = employee.emp_type
+        
+        # Contract dates based on employee type
+        if employee.emp_type == 'عقد':
+            form.contract_start_date.data = employee.contract_start_date
+            form.contract_end_date.data = employee.contract_end_date
+        
+        # Points and numbers
+        form.arda_points.data = employee.arda_points
+        form.sanwya_points.data = employee.sanwya_points
+        form.tar7eel_points.data = employee.tar7eel_points 
+        form.doc_number.data = employee.doc_number 
+        form.insurance_number.data = employee.insurance_number   
+        form.active.data = employee.active
+    
+    # Helper function to update employee from form data
+    def update_employee_from_form(employee, form):
+        # Parse time fields
+        job_start_time = datetime.strptime(form.job_start_time.data, '%H:%M').time()
+        job_end_time = datetime.strptime(form.job_end_time.data, '%H:%M').time()
+        
+        # Basic employee details
+        employee.username = form.username.data
+        employee.job_start_time = job_start_time
+        employee.job_end_time = job_end_time
+        
+        # Working days
+        employee.sat = form.sat.data
+        employee.sun = form.sun.data
+        employee.mon = form.mon.data
+        employee.tues = form.tues.data
+        employee.wed = form.wed.data
+        employee.thr = form.thr.data
+        employee.fri = form.fri.data
+        
+        # Education and certification
+        employee.certificate = form.certificate.data
+        employee.graduation_year = form.graduation_year.data
+        employee.employment_start_year = form.employment_start_year.data
+        
+        # Office and job details
+        employee.office_name = form.office_name.data
+        employee.period = form.period.data
+        # Keep original employment_id to avoid inconsistencies
+        employee.nat_id = form.nat_id.data
+        employee.name = form.name.data
+        
+        # Personal information
+        employee.birth_date = form.birth_date.data
+        employee.address = form.address.data
+        employee.phone_number = form.phone_number.data
+        employee.sec_phone_number = form.sec_phone_number.data
+        employee.gender = form.gender.data
+        employee.exp = form.exp.data
+        employee.exp_type = form.exp_type.data
+        employee.social = form.social.data
+        employee.religion = form.religion.data
+        
+        # Job information
+        employee.job_name_modli = form.job_name_modli.data
+        employee.level = form.level.data
+        employee.grade = form.grade.data
+        employee.job_type = form.job_type.data
+        employee.emp_type = form.emp_type.data
+        
+        # Contract dates based on employee type
+        if form.emp_type.data == 'عقد':
+            employee.contract_start_date = form.contract_start_date.data
+            employee.contract_end_date = form.contract_end_date.data
+        else:
+            employee.contract_start_date = None
+            employee.contract_end_date = None
+        
+        # Points and numbers
+        employee.tar7eel_points = form.tar7eel_points.data 
+        employee.doc_number = form.doc_number.data 
+        employee.insurance_number = form.insurance_number.data  
+        employee.active = form.active.data
+        
+        return employee
+    
+    # GET request - loading the form
     if request.method == 'GET' and employee_id:
         employee = Employee.query.get_or_404(employee_id)
-
         if employee:
-            # Pre-fill the form with the employee's data
-            form.username.data = employee.username
-            form.job_start_time.data = employee.job_start_time.strftime('%H:%M')
-            form.job_end_time.data = employee.job_end_time.strftime('%H:%M')
-            form.sat.data = employee.sat
-            form.sun.data = employee.sun
-            form.mon.data = employee.mon
-            form.tues.data = employee.tues
-            form.wed.data = employee.wed
-            form.thr.data = employee.thr
-            form.fri.data = employee.fri
-            form.certificate.data = employee.certificate
-            form.graduation_year.data = employee.graduation_year
-                        # Convert birth_date to datetime object if it's a string
-            if isinstance(employee.employment_start_year, str):
-                try:
-                    if len(employee.employment_start_year) == 4:  # Only a year
-                        employee.employment_start_year = datetime.strptime(employee.employment_start_year, '%Y')
-                    else:  # Full date
-                        employee.employment_start_year = datetime.strptime(employee.employment_start_year, '%Y-%m-%d')
-                except ValueError as e:
-                    flash(f'Value Error: {e}', 'danger')
-            form.employment_start_year.data = employee.employment_start_year
-            form.office_name.data = employee.office_name
-            form.period.data = employee.period
-            form.employment_id.data = employee.employment_id
-            form.nat_id.data = employee.nat_id
-            form.name.data = employee.name
+            populate_form_from_employee(employee, form)
+    
+    # POST request - form submission
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            # Parse time fields
+            job_start_time = datetime.strptime(form.job_start_time.data, '%H:%M').time()
+            job_end_time = datetime.strptime(form.job_end_time.data, '%H:%M').time()
             
-            # Convert birth_date to datetime object if it's a string
-            if isinstance(employee.birth_date, str):
-                try:
-                    if len(employee.birth_date) == 4:  # Only a year
-                        employee.birth_date = datetime.strptime(employee.birth_date, '%Y')
-                    else:  # Full date
-                        employee.birth_date = datetime.strptime(employee.birth_date, '%Y-%m-%d')
-                except ValueError as e:
-                    flash(f'Value Error: {e}', 'danger')
-
-            form.birth_date.data = employee.birth_date if employee.birth_date else ''
-            form.address.data = employee.address
-            form.phone_number.data = employee.phone_number
-            form.sec_phone_number.data = employee.sec_phone_number
-            form.gender.data = employee.gender
-            form.exp.data = employee.exp
-            form.exp_type.data = employee.exp_type
-            form.social.data = employee.social
-            form.religion.data = employee.religion
-            form.job_name_modli.data = employee.job_name_modli
-            form.level.data = employee.level
-            form.grade.data = employee.grade
-            form.job_type.data = employee.job_type
-            form.emp_type.data = employee.emp_type
-            form.arda_points.data = employee.arda_points
-            form.sanwya_points.data = employee.sanwya_points
-
-            form.tar7eel_points.data = employee.tar7eel_points 
-            form.doc_number.data = employee.doc_number 
-            form.insurance_number.data = employee.insurance_number   
-            form.active.data = employee.active  
-
-    if request.method == 'POST':
-        print("Add or edit employee")
-
-        if form.validate_on_submit():
-            try:
-
-                job_start_time = datetime.strptime(form.job_start_time.data, '%H:%M').time()
-                job_end_time = datetime.strptime(form.job_end_time.data, '%H:%M').time()
+            if employee_id:  # Update existing employee
+                employee = Employee.query.get_or_404(employee_id)
                 
-                if employee_id:
-
-                    employee = Employee.query.get_or_404(employee_id)
-                    temp = employee.sanwya_points
-                    temp_Arda = employee.arda_points
-                    current_year = datetime.now().year
-                    agaza_duration_this_year2 = calculate_agaza_duration_this_year(employee_id, current_year,agaza_type= 'أعتيادية' )
-                    agaza_duration_this_year3 = calculate_agaza_duration_this_year(employee_id, current_year,agaza_type= 'عارضة' )
-                    print('agaza_duration_this_year2' , agaza_duration_this_year2)
-                    if employee:
-                        employee.username = form.username.data
-                        employee.job_start_time = job_start_time
-                        employee.job_end_time = job_end_time
-                        employee.sat = form.sat.data
-                        employee.sun = form.sun.data
-                        employee.mon = form.mon.data
-                        employee.tues = form.tues.data
-                        employee.wed = form.wed.data
-                        employee.thr = form.thr.data
-                        employee.fri = form.fri.data
-                        employee.certificate = form.certificate.data
-                        employee.graduation_year = form.graduation_year.data
-                        employee.employment_start_year = form.employment_start_year.data
-                        employee.office_name = form.office_name.data
-                        employee.period = form.period.data
-                        employee.employment_id = employee.employment_id
-                        employee.nat_id = form.nat_id.data
-                        employee.name = form.name.data
-                        employee.birth_date = form.birth_date.data
-                        employee.address = form.address.data
-                        employee.phone_number = form.phone_number.data
-                        employee.sec_phone_number = form.sec_phone_number.data
-                        employee.gender = form.gender.data
-                        employee.exp = form.exp.data
-                        employee.exp_type = form.exp_type.data
-                        employee.social = form.social.data
-                        employee.religion = form.religion.data
-                        employee.job_name_modli = form.job_name_modli.data
-                        employee.level = form.level.data
-                        employee.grade = form.grade.data
-                        employee.job_type = form.job_type.data
-                        employee.emp_type = form.emp_type.data
-                        employee.arda_points = form.arda_points.data
-                        print('temp_Arda', temp_Arda)
-                        print('temp_Arda', temp_Arda)
-                        print('agaza_duration_this_year3' , agaza_duration_this_year3)
-                        if temp_Arda < form.arda_points.data:
-                            employee.arda_points = form.arda_points.data - agaza_duration_this_year3
-                        else:
-                            employee.arda_points = form.arda_points.data
-
-                        if temp < form.sanwya_points.data:
-                            employee.sanwya_points = form.sanwya_points.data - agaza_duration_this_year2
-                        else:
-                            employee.sanwya_points = form.sanwya_points.data
-                            
-                        employee.tar7eel_points = form.tar7eel_points.data 
-                        employee.doc_number = form.doc_number.data 
-                        employee.insurance_number = form.insurance_number.data  
-                        employee.active = form.active.data 
-                        user = User.query.get_or_404(employee_id)  # Assuming User has an employee_id foreign key
-                        if user:
-                            user.office = form.office_name.data  # Update the User office field
-                            db.session.commit()  # Commit the changes for User
-                        db.session.commit()
-                        flash('تم تحديث الموظف بنجاح!', 'success')
-                        return redirect(url_for('main.admin_users'))
+                # Store original values for points calculation
+                original_arda_points = employee.arda_points
+                original_sanwya_points = employee.sanwya_points
+                
+                # Get leave durations for the current year
+                current_year = datetime.now().year
+                agaza_duration_sanwya = calculate_agaza_duration_this_year(employee_id, current_year, agaza_type='أعتيادية')
+                agaza_duration_arda = calculate_agaza_duration_this_year(employee_id, current_year, agaza_type='عارضة')
+                
+                # Update employee fields from form
+                employee = update_employee_from_form(employee, form)
+                
+                # Handle points based on original values and leave durations
+                if original_arda_points < form.arda_points.data:
+                    employee.arda_points = form.arda_points.data - agaza_duration_arda
                 else:
-                    print("Add new employee")
-                    # Add new employee
-                    employee = Employee(
-                        username = form.username.data,
-                        id=form.employment_id.data,
-
-                        job_start_time=job_start_time,
-                        job_end_time=job_end_time,
-                        sat=form.sat.data,
-                        sun=form.sun.data,
-                        mon=form.mon.data,
-                        tues=form.tues.data,
-                        wed=form.wed.data,
-                        thr=form.thr.data,
-                        fri=form.fri.data,
-                        certificate=form.certificate.data,
-                        graduation_year=form.graduation_year.data,
-                        employment_start_year=form.employment_start_year.data,
-                        office_name=form.office_name.data,
-                        period=form.period.data,
-                        employment_id=form.employment_id.data,
-                        nat_id=form.nat_id.data,
-                        name=form.name.data,
-                        birth_date=form.birth_date.data,
-                        address=form.address.data,
-                        phone_number=form.phone_number.data,
-                        sec_phone_number=form.sec_phone_number.data,
-                        gender=form.gender.data,
-                        exp=form.exp.data,
-                        exp_type=form.exp_type.data,
-                        social=form.social.data,
-                        religion=form.religion.data,
-                        job_name_modli=form.job_name_modli.data,
-                        level=form.level.data,
-                        grade = form.grade.data,
-                        job_type=form.job_type.data,
-                        emp_type = form.emp_type.data,
-                        arda_points = form.arda_points.data,
-                        sanwya_points = form.sanwya_points.data, 
-                        tar7eel_points = form.tar7eel_points.data, 
-                        doc_number = form.doc_number.data, 
-                        active = form.active.data,
-                        insurance_number = form.insurance_number.data,
-                        photo = form.employment_id.data+ ".jpg",   
-                        
-                    )
-                    db.session.add(employee)
+                    employee.arda_points = form.arda_points.data
+                
+                if original_sanwya_points < form.sanwya_points.data:
+                    employee.sanwya_points = form.sanwya_points.data - agaza_duration_sanwya
+                else:
+                    employee.sanwya_points = form.sanwya_points.data
+                
+                # Update related user record if exists
+                user = User.query.get_or_404(employee_id)
+                if user:
+                    user.office = form.office_name.data
                     db.session.commit()
-                    flash('!تمت إضافة الموظف بنجاح', 'success')
-                    return redirect(url_for('main.admin_users'))
-            except IntegrityError as IE:
-                db.session.rollback()
-                #print(f"An error occurred: {IE}")  # Print the error message
-                flash('اسم المستخدم أو البريد الإلكتروني موجود بالفعل. يرجى المحاولة مرة أخرى.', 'danger')
-            except ValueError as ve:
-                flash(f'Value Error: {ve}', 'danger')
-            except Exception as e:
-                db.session.rollback()
-                flash(f'حدث خطأ غير متوقع: {e}', 'danger')
-        else:
-                    # Print form errors for debugging
-            print('Form validation failed. Errors:', form.errors)
-            flash('فشل التحقق من صحة النموذج. يرجى التحقق من المدخلات.', 'danger')
-    print("add emp filled")
-    return render_template('emplooye_affairs_admin/add_employee.html', form=form , user_type=current_user.user_type ,user_office=current_user.office,  employee_photo=employee.photo if employee else None)
+                
+                db.session.commit()
+                flash('تم تحديث الموظف بنجاح!', 'success')
+                
+            else:  # Create new employee
+                # Set contract dates based on employment type
+                contract_start_date = None
+                contract_end_date = None
+                if form.emp_type.data == 'عقد':
+                    contract_start_date = form.contract_start_date.data
+                    contract_end_date = form.contract_end_date.data
+                
+                # Create new employee object
+                employee = Employee(
+                    username = form.username.data,
+                    id = form.employment_id.data,
+                    job_start_time = job_start_time,
+                    job_end_time = job_end_time,
+                    sat = form.sat.data,
+                    sun = form.sun.data,
+                    mon = form.mon.data,
+                    tues = form.tues.data,
+                    wed = form.wed.data,
+                    thr = form.thr.data,
+                    fri = form.fri.data,
+                    certificate = form.certificate.data,
+                    graduation_year = form.graduation_year.data,
+                    employment_start_year = form.employment_start_year.data,
+                    office_name = form.office_name.data,
+                    period = form.period.data,
+                    employment_id = form.employment_id.data,
+                    nat_id = form.nat_id.data,
+                    name = form.name.data,
+                    birth_date = form.birth_date.data,
+                    address = form.address.data,
+                    phone_number = form.phone_number.data,
+                    sec_phone_number = form.sec_phone_number.data,
+                    gender = form.gender.data,
+                    exp = form.exp.data,
+                    exp_type = form.exp_type.data,
+                    social = form.social.data,
+                    religion = form.religion.data,
+                    job_name_modli = form.job_name_modli.data,
+                    level = form.level.data,
+                    grade = form.grade.data,
+                    job_type = form.job_type.data,
+                    emp_type = form.emp_type.data,
+                    contract_start_date = contract_start_date,
+                    contract_end_date = contract_end_date,
+                    arda_points = form.arda_points.data,
+                    sanwya_points = form.sanwya_points.data, 
+                    tar7eel_points = form.tar7eel_points.data, 
+                    doc_number = form.doc_number.data, 
+                    active = form.active.data,
+                    insurance_number = form.insurance_number.data,
+                    photo = form.employment_id.data + ".jpg"
+                )
+                
+                db.session.add(employee)
+                db.session.commit()
+                flash('!تمت إضافة الموظف بنجاح', 'success')
+            
+            return redirect(url_for('main.admin_users'))
+            
+        except IntegrityError:
+            db.session.rollback()
+            flash('اسم المستخدم أو البريد الإلكتروني موجود بالفعل. يرجى المحاولة مرة أخرى.', 'danger')
+        except ValueError as ve:
+            flash(f'Value Error: {ve}', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ غير متوقع: {e}', 'danger')
+    
+    elif request.method == 'POST':
+        # Form validation failed
+        print('Form validation failed. Errors:', form.errors)
+        flash('فشل التحقق من صحة النموذج. يرجى التحقق من المدخلات.', 'danger')
+    
+    # Render the form template
+    return render_template(
+        'emplooye_affairs_admin/add_employee.html',
+        form=form,
+        user_type=current_user.user_type,
+        user_office=current_user.office,
+        employee_photo=employee.photo if employee else None
+    )
 
 @main.route("/delete_employee/<int:employee_id>", methods=['POST'])
 @login_required
@@ -582,7 +659,7 @@ def reports():
         'Petition': 'الالتماس',
         'Diagnosis': 'تشخيص العيادة',
         'Clinic Type': 'نوع العيادة',
-        'Date': 'تاريخ العيادة',
+        'Date': 'التاريخ ',
         'Rest Day': 'الراحة',
         'check_in_time': 'موعد العمل',
         'check_out_time':'موعد الانصراف',
@@ -677,6 +754,7 @@ from datetime import datetime
 
 @main.route('/employee_report', methods=['GET', 'POST'])
 @login_required
+@permission_required('read')
 def employee_report():
     # Define the translation dictionary
     translations = {
@@ -715,7 +793,7 @@ def employee_report():
         'Petition': 'الالتماس',
         'Diagnosis': 'تشخيص العيادة',
         'Clinic Type': 'نوع العيادة',
-        'Date': 'تاريخ العيادة',
+        'Date': 'التاريخ',
         'Rest Day': 'الراحة',
         'check_in_time': 'موعد العمل',
         'check_out_time':'موعد الانصراف',
@@ -738,6 +816,10 @@ def employee_report():
     employees_in_office = get_employees_by_office(user_office)
     current_date = datetime.today().strftime('%Y-%m-%d')
     report_data = []  # Initialize as empty list in case no data is found
+    count = 0
+    report_from = ""
+    report_to = ""
+    report_type = ""
 
     if request.method == 'POST':
         report_type = request.form['report_type']
@@ -748,24 +830,85 @@ def employee_report():
 
         if report_type == 'absent':
             # Handle absent report
-            #print(f"Generating absent report for {date_from} to {date_to}")
             report_data = get_absent_employees(specific_day=None, date_from=date_from, date_to=date_to, employee_id=employee_id, office_name=user_office)
         
         elif report_type in ['check_in_attendance', 'check_in_delays', 'momrya', 'check_out_attendance', 'check_out_ahead', 'no_check_out', 'rased', 'ezn', 'agaza', 'clinic', 'altmas' , 'rest' , 'check_all']:
             # Handle attendance related reports using SQL queries
-            #print(f"Generating {report_type} report")
             report_data = handle_attendance_reports(report_type=report_type, date_from=date_from, date_to=date_to, id=employee_id, include_delay_minutes=True, include_leave_early_time=True)
 
         if not report_data:
             flash("لم يتم العثور على بيانات للمعايير المحددة.", "warning")
-            return render_template('emplooye_affairs_admin/employee_report.html', current_date=current_date, user_type=current_user.user_type, user_office=user_office, all_offices=all_offices, employees=employees_in_office , employee_id=current_user.id)
-        date_from = format_date_to_arabic( datetime.strptime(date_from, '%Y-%m-%d').date())
-        date_to = format_date_to_arabic(datetime.strptime(date_to, '%Y-%m-%d').date())
-        current_date =format_date_to_arabic(datetime.strptime(current_date, '%Y-%m-%d').date())
-        report_date = f"من تاريخ: {date_from}  |||||  إلى: {date_to}"
-        return render_template('emplooye_affairs_admin/report_pdf.html', report_data=report_data, translations=translations, report_type=report_type, report_date=report_date, current_date=current_date, user_type=current_user.user_type, user_office=user_office , count=len(report_data))
+            return render_template('emplooye_affairs_admin//employee_report.html', 
+                                  current_date=current_date, 
+                                  user_type=current_user.user_type, 
+                                  user_office=user_office, 
+                                  all_offices=all_offices, 
+                                  employees=employees_in_office, 
+                                  employee_id=current_user.id)
+        
+        # Convert dates to Arabic format
+        date_from_arabic = format_date_to_arabic(datetime.strptime(date_from, '%Y-%m-%d').date())
+        date_to_arabic = format_date_to_arabic(datetime.strptime(date_to, '%Y-%m-%d').date())
+        current_date_arabic = format_date_to_arabic(datetime.strptime(current_date, '%Y-%m-%d').date())
+        
+        count = len(report_data)
+        
+        # For the PDF generation endpoint
+        if request.args.get('format') == 'pdf':
+            report_date = f"من تاريخ: {date_from_arabic}  |||||  إلى: {date_to_arabic}"
+            return render_template('emplooye_affairs_admin/report_pdf.html', 
+                                  report_data=report_data, 
+                                  translations=translations, 
+                                  report_type=report_type, 
+                                  report_date=report_date, 
+                                  current_date=current_date_arabic, 
+                                  user_type=current_user.user_type, 
+                                  user_office=user_office, 
+                                  count=count,
+                                  report_from=date_from_arabic, 
+                                  report_to=date_to_arabic)
+        
+        # For the normal in-browser display
+        return render_template('emplooye_affairs_admin/report_pdf.html', 
+                              report_data=report_data, 
+                              translations=translations, 
+                              report_type=report_type, 
+                              current_date=current_date, 
+                              user_type=current_user.user_type, 
+                              user_office=user_office, 
+                              all_offices=all_offices, 
+                              employees=employees_in_office, 
+                              employee_id=current_user.id,
+                              count=count,
+                              report_from=date_from_arabic, 
+                              report_to=date_to_arabic)
 
-    return render_template('emplooye_affairs_admin/employee_report.html', user_type=current_user.user_type, user_office=user_office, all_offices=all_offices, employees=employees_in_office ,  employee_id=current_user.id)
+    # Initial GET request - show the form only
+    return render_template('emplooye_affairs_admin/employee_report.html', 
+                          user_type=current_user.user_type, 
+                          user_office=user_office, 
+                          all_offices=all_offices, 
+                          employees=employees_in_office, 
+                          employee_id=current_user.id,
+                          current_date=current_date)
+
+# Add a new route for PDF generation
+@main.route('/generate_employee_report_pdf', methods=['POST'])
+@login_required
+def generate_employee_report_pdf():
+    # Get form data
+    report_type = request.form['report_type']
+    date_from = request.form['date_from']
+    date_to = request.form['date_to']
+    employee_id = request.form['employee_id']
+    
+    # Redirect to the employee_report endpoint with format=pdf parameter
+    return redirect(url_for('main.employee_report', 
+                           report_type=report_type, 
+                           date_from=date_from, 
+                           date_to=date_to, 
+                           employee_name=employee_id, 
+                           format='pdf'))
 
 def get_all_offices():
     return [
@@ -832,12 +975,14 @@ def get_employees_by_office(office_name):
 
 @main.route('/official_holidays')
 @login_required
+@permission_required('read')
 def official_holidays():
     holidays = OfficialHoliday.query.all()
     return render_template('emplooye_affairs_admin/official_holidays.html', holidays=holidays ,  user_type=current_user.user_type , user_office=current_user.office)
 
 @main.route('/add_official_holidays', methods=['GET', 'POST'])
 @login_required
+@permission_required('write')
 def add_official_holiday():
     form = HolidayForm()
     if form.validate_on_submit():
@@ -856,6 +1001,7 @@ def add_official_holiday():
 
 @main.route('/official_holidays/edit/<int:holiday_id>', methods=['GET', 'POST'])
 @login_required
+@permission_required('write')
 def edit_official_holiday(holiday_id):
     holiday = OfficialHoliday.query.get_or_404(holiday_id)
     form = HolidayForm(obj=holiday)
@@ -872,6 +1018,7 @@ def edit_official_holiday(holiday_id):
 
 @main.route('/holidays/delete/<int:holiday_id>', methods=['POST'])
 @login_required
+@permission_required('write')
 def delete_official_holiday(holiday_id):
     holiday = OfficialHoliday.query.get_or_404(holiday_id)
     db.session.delete(holiday)
@@ -980,6 +1127,7 @@ def get_employee_schedule(employee_id):
 
 @main.route('/job_schedule_override', methods=['GET'])
 @login_required
+@permission_required('read')
 def job_schedule_override():
     office = current_user.office  # Assuming current_user has an office_name attribute
     date = request.args.get('filter_date')
@@ -1157,6 +1305,7 @@ def handle_ezn_request():
         #print("EznForm is valid")
         ezn = Ezn(
             employee_id=form.employee_name.data,
+            date=form.date.data,
             from_time=datetime.strptime(form.from_time.data,'%H:%M').time(),
             to_time=datetime.strptime(form.to_time.data,'%H:%M').time(),
             submit_date=datetime.now().date()
@@ -1185,10 +1334,10 @@ def handle_ezn_request():
         user_name = get_user_name_by_office(employee.office_name)
         today_date = datetime.today().strftime('%Y-%m-%d')
         print('today_date',today_date)
-        report_data = {
-                'today_date': today_date,
+        report_data = { 
+                'today_date':ezn.date.strftime('%Y-%m-%d') ,
                 'ezn_form_time': format_time_to_arabic(datetime.strptime(form.from_time.data,'%H:%M').time()),
-                'submit_date': datetime.now().date(),
+                'submit_date': today_date,
                 'ezn_to_time': format_time_to_arabic(datetime.strptime(form.to_time.data,'%H:%M').time()),
                 'employee_name': employee.name,
                 'employee_job_name': employee.job_name_modli,
@@ -1536,7 +1685,7 @@ def get_requests_data():
             )
         elif request_type == 'ezn':
             query = Ezn.query.join(Employee).with_entities(
-                Ezn.id, Ezn.from_time, Ezn.to_time, Ezn.out_time, 
+                Ezn.id, Ezn.from_time, Ezn.to_time, Ezn.out_time,Ezn.date ,
                 Ezn.back_time, Ezn.submit_date, Ezn.approval_status,
                 Employee.employment_id.label('employee_id'), Employee.name.label('employee_name'),
                 Employee.job_name_modli.label('job_title'), Employee.office_name.label('employee_office')
@@ -1667,6 +1816,8 @@ def get_requests_data():
     return jsonify(results_with_messages)
 
 @main.route('/requests_veiws.html', methods=['GET'])
+@login_required
+@permission_required('read')
 def requests_veiws():
     return render_template(
         'emplooye_affairs_admin/requests_veiws.html',
@@ -1697,16 +1848,60 @@ def process_request_action(approval_id, action_type):
     # If delete action is requested
     if action_type == 'delete':
         try:
+            points_returned = False
+            points_message = ""
+            agaza_duration = 0
+            
+            # Before deleting, check if this is an agaza request and handle point return if it's approved
+            if approval.request_type == 'agaza':
+                agaza = Agaza.query.get(approval.request_id)
+                
+                # Only process point return if the agaza was approved
+                if agaza and agaza.approval_status == 'Approved':
+                    employee = Employee.query.get(agaza.employee_id)
+                    
+                    if employee:
+                        # Calculate the duration of the agaza
+                        agaza_duration = days_between_dates(
+                            agaza.from_date.strftime('%Y-%m-%d'), 
+                            agaza.to_date.strftime('%Y-%m-%d')
+                        ) + 1
+                        
+                        # Return points based on agaza type
+                        if agaza.type in ['أعتيادية', 'اجازة بدل انصراف']:
+                            # Return points to sanwya_points
+                            employee.sanwya_points += agaza_duration
+                            points_message = f"تم إعادة {agaza_duration} أيام إلى رصيد الإجازات الإعتيادية للموظف {employee.name}"
+                            points_returned = True
+                            print(f"Returned {agaza_duration} days to employee {employee.name}'s sanwya points. New balance: {employee.sanwya_points}")
+                        
+                        elif agaza.type in ['عارضة', 'عارضة طارئة']:
+                            # Return points to arda_points
+                            employee.arda_points += agaza_duration
+                            points_message = f"تم إعادة {agaza_duration} أيام إلى رصيد الإجازات العارضة للموظف {employee.name}"
+                            points_returned = True
+                            print(f"Returned {agaza_duration} days to employee {employee.name}'s arda points. New balance: {employee.arda_points}")
+                        
+                        # Save employee changes
+                        db.session.add(employee)
+                
+            # Now delete the approval
             db.session.delete(approval)
             db.session.commit()
-            return jsonify({
+            
+            response_data = {
                 'status': 'success',
-                'message': 'Request deleted successfully.',
+                'message': points_message if points_returned else 'Request deleted successfully.',
                 'action_type': 'delete',
-                'approval_id': approval_id
-            }), 200
+                'approval_id': approval_id,
+                'points_returned': points_returned,
+                'agaza_duration': agaza_duration
+            }
+            
+            return jsonify(response_data), 200
         except Exception as e:
             db.session.rollback()
+            print(f"Error when deleting request: {str(e)}")
             return jsonify({'status': 'error', 'message': 'Error occurred while deleting the request.'}), 500
 
     # Ensure valid action type
@@ -1765,22 +1960,52 @@ def handle_request_action():
 @login_required
 def generate_print_report():
     # Get the report type from the form
+    if request.is_json:
+        report_type = request.json.get('report_type')
+        request_id = request.json.get('request_id')
+        employee_id = request.json.get('employee_id')
+    else:
+        # Handle form data for employee reports
+        report_type = request.form.get('report_type')
+        date_from = request.form.get('date_from')
+        date_to = request.form.get('date_to')
+        employee_id = request.form.get('employee_id')
+        
+        # If this is an employee report request, redirect to the employee_report endpoint
+        if report_type in ['check_in_attendance', 'check_in_delays', 'check_out_attendance', 
+                          'no_check_out', 'check_all', 'momrya', 'absent', 'ezn', 'agaza', 
+                          'clinic', 'altmas', 'rased', 'rest']:
+            return redirect(url_for('main.employee_report', 
+                                   report_type=report_type,
+                                   date_from=date_from,
+                                   date_to=date_to,
+                                   employee_name=employee_id,
+                                   format='pdf'))
 
-    report_type = request.json.get('report_type')
-    request_id = request.json.get('request_id')
-    employee_id = request.json.get('employee_id')
     # Determine which template and data to use based on the report type
     if report_type == 'agaza':
-        # Get additional data specific to agaza
-        agaza_id = request_id
+        try:
+            # Get additional data specific to agaza
+            agaza_id = request_id
 
-        # Query the Agaza and Employee data
-        agaza = Agaza.query.filter_by(id=agaza_id, employee_id=employee_id).first()
-        employee = Employee.query.filter_by(id=employee_id).first()
+            # Query the Agaza and Employee data
+            agaza = Agaza.query.filter_by(id=agaza_id, employee_id=employee_id).first()
+            
+            # Check if agaza exists before proceeding
+            if not agaza:
+                return "Agaza record not found", 404
+                
+            employee = Employee.query.filter_by(id=employee_id).first()
+            
+            # Check if employee exists before proceeding
+            if not employee:
+                return "Employee record not found", 404
 
-        alternative = Employee.query.filter_by(id=agaza.alternative).first()
-        
-        if agaza and employee:
+            # Safely handle alternative employee
+            alternative = None
+            if agaza.alternative:
+                alternative = Employee.query.filter_by(id=agaza.alternative).first()
+            
             # Calculate the duration of agaza
             agaza_duration = days_between_dates(agaza.from_date.strftime('%Y-%m-%d'), agaza.to_date.strftime('%Y-%m-%d'))+1
 
@@ -1795,13 +2020,14 @@ def generate_print_report():
             tar7eel_points = None
             sanwya_points = None
             arda_points = None
+            
             # Check the type of agaza
             if agaza.type in ['أعتيادية', 'عارضة' , 'عارضة طارئة' , 'اجازة بدل انصراف']:
                 agaza_duration_this_year = calculate_agaza_duration_this_year(employee_id, current_year,agaza_type= agaza.type ,submit_date= agaza.submit_date)
                 agaza_duration_this_year2 = calculate_agaza_duration_this_year(employee_id, current_year,agaza_type= agaza.type )
                 agaza_duration_this_year3 = calculate_agaza_duration_this_year(employee_id, current_year,agaza_type= agaza.type  , after=agaza.submit_date)
                 print('agaza_duration_this_year' , agaza_duration_this_year)
-                if agaza.type in ['أعتيادية' , 'اجازة بدل انصراف'] :
+                if agaza.type in ['أعتيادية' , 'اجازة بدل انصراف']:
                     most7ak = agaza_duration_this_year2 + employee.sanwya_points  # Only for اعتياديه points
                     tar7eel_points = convert_to_arabic_numerals(employee.tar7eel_points)
                     sanwya_points = convert_to_arabic_numerals(employee.sanwya_points + agaza_duration_this_year3)
@@ -1810,8 +2036,9 @@ def generate_print_report():
                     most7ak = agaza_duration_this_year2 + employee.arda_points  # Only for عارضه points
                     arda_points = convert_to_arabic_numerals(employee.arda_points + agaza_duration_this_year3)
                 
-                year_agazas =agaza_duration_this_year
+                year_agazas = agaza_duration_this_year
                 print('year_agazas' , year_agazas)
+                
             # Handle alternative employee name
             if alternative:
                 alt_name = alternative.name
@@ -1819,7 +2046,7 @@ def generate_print_report():
             # Prepare the report data
             report_data = {
                 'employee_id': employee_id,
-                'notes': agaza.notes_agaza if agaza.notes_agaza  else None,
+                'notes': agaza.notes_agaza if agaza.notes_agaza else None,
                 'alternative': alt_name,
                 'submit_date': agaza.submit_date,
                 'from_date': format_date_to_arabic(agaza.from_date),
@@ -1841,35 +2068,51 @@ def generate_print_report():
             }
             print(report_data)
 
-        return render_template('emplooye_affairs_admin/report_agaza.html', data=report_data , sig=True)
+            return render_template('emplooye_affairs_admin/report_agaza.html', data=report_data, sig=True)
+        except Exception as e:
+            print(f"Error in agaza report: {str(e)}")
+            return f"Error generating agaza report: {str(e)}", 500
     
     elif report_type == 'clinic':
-        clinic_id = request_id
-        # Get clinic-specific data directly here
-        clinic_record = Clinic.query.filter_by(id=clinic_id,employee_id=employee_id).order_by(Clinic.date.desc()).first()
-        employee = Employee.query.get_or_404(employee_id)
-        
-        if clinic_record and employee:
+        try:
+            clinic_id = request_id
+            # Get clinic-specific data directly here
+            clinic_record = Clinic.query.filter_by(id=clinic_id, employee_id=employee_id).order_by(Clinic.date.desc()).first()
+            
+            # Check if clinic record exists
+            if not clinic_record:
+                return "Clinic record not found", 404
+                
+            employee = Employee.query.get_or_404(employee_id)
+            
             today_date = datetime.today().strftime('%Y-%m-%d')
             user_name = get_user_name_by_office(employee.office_name)
             
             report_data = {
                 'clinic_date': clinic_record.date,
                 'today_date': today_date,
-                
                 'today_arabic': format_date_to_arabic(clinic_record.date),
                 'employee_name': employee.name,
                 'job_name_modli': employee.job_name_modli,
                 'manger_name': user_name  # Include the user's name from User table
             }
-            return render_template('emplooye_affairs_admin/report_clinic.html', data=report_data , sig = True) 
+            return render_template('emplooye_affairs_admin/report_clinic.html', data=report_data, sig=True)
+        except Exception as e:
+            print(f"Error in clinic report: {str(e)}")
+            return f"Error generating clinic report: {str(e)}", 500
+            
     elif report_type == 'momrya':
-        momrya_id = request_id
-        # Get clinic-specific data directly here
-        momrya_record = Momrya.query.filter_by(id=momrya_id,employee_id=employee_id).order_by(Momrya.date.desc()).first()
-        employee = Employee.query.get_or_404(employee_id)
-        
-        if momrya_record and employee:
+        try:
+            momrya_id = request_id
+            # Get momrya-specific data directly here
+            momrya_record = Momrya.query.filter_by(id=momrya_id, employee_id=employee_id).order_by(Momrya.date.desc()).first()
+            
+            # Check if momrya record exists
+            if not momrya_record:
+                return "Momrya record not found", 404
+                
+            employee = Employee.query.get_or_404(employee_id)
+            
             today_date = datetime.today().strftime('%Y-%m-%d')
             user_name = get_user_name_by_office(employee.office_name)
             
@@ -1878,19 +2121,27 @@ def generate_print_report():
                 'today_arabic': format_date_to_arabic(datetime.now().date()),
                 'employee_name': employee.name,
                 'job_name_modli': employee.job_name_modli,
-                'manger_name': user_name , # Include the user's name from User table
-                'date':  format_date_to_arabic(momrya_record.date ) ,
+                'manger_name': user_name,  # Include the user's name from User table
+                'date': format_date_to_arabic(momrya_record.date),
                 'to_date': format_date_to_arabic(momrya_record.to_date)
             }
-            return render_template('emplooye_affairs_admin/report_momrya.html', data=report_data)      
+            return render_template('emplooye_affairs_admin/report_momrya.html', data=report_data)
+        except Exception as e:
+            print(f"Error in momrya report: {str(e)}")
+            return f"Error generating momrya report: {str(e)}", 500
 
     elif report_type == 'ezn':
-        ezn_id = request_id
-        # Get ezn-specific data
-        ezn_records = Ezn.query.filter_by(id=ezn_id, employee_id=employee_id).first()
-        employee = Employee.query.get_or_404(employee_id)
+        try:
+            ezn_id = request_id
+            # Get ezn-specific data
+            ezn_records = Ezn.query.filter_by(id=ezn_id, employee_id=employee_id).first()
+            
+            # Check if ezn record exists
+            if not ezn_records:
+                return "Ezn record not found", 404
+                
+            employee = Employee.query.get_or_404(employee_id)
 
-        if ezn_records and employee:
             # Get the current month and year
             current_month = datetime.now().month
             current_year = datetime.now().year
@@ -1903,7 +2154,7 @@ def generate_print_report():
                 Ezn.approval_status == 'Approved'
             ).count()
         
-            #Set ezn_count to 1 if no approved records are found
+            # Set ezn_count to 1 if no approved records are found
             ezn_count = ezn_count if ezn_count > 0 else 1
             # Prepare report data
             today_date = datetime.today().strftime('%Y-%m-%d')
@@ -1921,17 +2172,25 @@ def generate_print_report():
                 'ezn_count': ezn_count  # Include the count of ezn records for the current month
             }
 
-            return render_template('emplooye_affairs_admin/report_ezn.html', data=report_data , sig = True)
+            return render_template('emplooye_affairs_admin/report_ezn.html', data=report_data, sig=True)
+        except Exception as e:
+            print(f"Error in ezn report: {str(e)}")
+            return f"Error generating ezn report: {str(e)}", 500
 
     elif report_type == 'altmas':
-        altmas_id = request_id
-        # Get the most recent altmas record for the employee
-        altmas_record = Altmas.query.filter_by(id=altmas_id ,employee_id=employee_id).order_by(Altmas.submit_date.desc()).first()
-        employee = Employee.query.get_or_404(employee_id)
-        user_name = get_user_name_by_office(employee.office_name)
+        try:
+            altmas_id = request_id
+            # Get the most recent altmas record for the employee
+            altmas_record = Altmas.query.filter_by(id=altmas_id, employee_id=employee_id).order_by(Altmas.submit_date.desc()).first()
+            
+            # Check if altmas record exists
+            if not altmas_record:
+                return "Altmas record not found", 404
+                
+            employee = Employee.query.get_or_404(employee_id)
+            user_name = get_user_name_by_office(employee.office_name)
 
-        if altmas_record and employee:
-            today_date =  datetime.today().strftime('%Y-%m-%d')
+            today_date = datetime.today().strftime('%Y-%m-%d')
             
             report_data = {
                 'today_date': today_date,
@@ -1942,9 +2201,10 @@ def generate_print_report():
                 'employee_office': employee.office_name,
                 'employee_job_name': employee.job_name_modli
             }
-            return render_template('emplooye_affairs_admin/report_altmas.html', data=report_data , sig =True)
-        
- 
+            return render_template('emplooye_affairs_admin/report_altmas.html', data=report_data, sig=True)
+        except Exception as e:
+            print(f"Error in altmas report: {str(e)}")
+            return f"Error generating altmas report: {str(e)}", 500
 
     else:
         # Handle the case where the report type is not recognized
@@ -1964,55 +2224,217 @@ def update_request_details(request_type, request_id):
         field = data.get('field')
         value = data.get('value')
         
+        print(f"DEBUG: Received request to update {request_type} {request_id}, field: {field}, value: {value}")
+        
         # Map request types to their corresponding models
         model_map = {
             'agaza': Agaza,
-            'momrya': Momrya,  # Using Agaza model for momrya
+            'momrya': Momrya,
             'ezn': Ezn,
-            'clinic': Clinic
+            'clinic': Clinic,
+            'altmas': Altmas
         }
-
 
         if request_type not in model_map:
             return jsonify({'success': False, 'error': 'Invalid request type'}), 400
             
-                # Retrieve the Approvals record first
-        approval_record = Approvals.query.get_or_404(request_id)
-        actual_request_id = approval_record.request_id
+        # Retrieve the Approvals record first
+        try:
+            approval_record = Approvals.query.get_or_404(request_id)
+            actual_request_id = approval_record.request_id
+        except Exception as e:
+            print(f"ERROR: Failed to retrieve Approvals record: {str(e)}")
+            return jsonify({'success': False, 'error': f'Approval record not found: {str(e)}'}), 404
 
         # Now retrieve the actual record from the mapped model
-        record = model_map[request_type].query.get_or_404(actual_request_id)
+        try:
+            record = model_map[request_type].query.get_or_404(actual_request_id)
+            print(f"DEBUG: Retrieved {request_type} record with ID {actual_request_id}")
+        except Exception as e:
+            print(f"ERROR: Failed to retrieve {request_type} record: {str(e)}")
+            return jsonify({'success': False, 'error': f'Record not found: {str(e)}'}), 404
         
-        # Handle different field types
-        if field in ['out_time', 'back_time']:
+        # Special handling for agaza to_date field to update employee points
+        if request_type == 'agaza' and field == 'to_date':
+            try:
+                # Parse the new to_date
+                new_to_date = datetime.strptime(value, '%Y-%m-%d').date()
+                old_to_date = record.to_date
+                
+                # More detailed logging to diagnose the issue
+                print(f"DEBUG: old_to_date = {old_to_date}, new_to_date = {new_to_date}")
+                
+                # Only proceed if the date has actually changed
+                if new_to_date != old_to_date:
+                    # Get the employee record
+                    employee = Employee.query.get(record.employee_id)
+                    if not employee:
+                        return jsonify({'success': False, 'error': 'Employee not found'}), 404
+                    
+                    # Store original values for verification
+                    original_sanwya_points = employee.sanwya_points
+                    original_arda_points = employee.arda_points
+                    
+                    print(f"DEBUG: Starting points - sanwya: {original_sanwya_points}, arda: {original_arda_points}")
+                    print(f"DEBUG: Employee: {employee.name}, type: {record.type}")
+                    
+                    # Calculate day difference properly for agaza duration
+                    # Correctly calculate difference considering inclusive dates
+                    old_duration = (record.to_date - record.from_date).days + 1
+                    new_duration = (new_to_date - record.from_date).days + 1
+                    day_difference = new_duration - old_duration
+                    
+                    print(f"DEBUG: old_duration = {old_duration}, new_duration = {new_duration}")
+                    print(f"DEBUG: day_difference = {day_difference}")
+                    
+                    # Start a transaction
+                    try:
+                        # Handle points adjustment based on agaza type
+                        if record.type == 'أعتيادية':
+                            # For أعتيادية, adjust sanwya_points
+                            if day_difference < 0:
+                                # If shortening the leave, add points back
+                                new_points = original_sanwya_points + abs(day_difference)
+                                
+                                # Use direct SQL update for reliable points update
+                                db.session.execute(
+                                    text(f"UPDATE employee SET sanwya_points = :points WHERE id = :employee_id"),
+                                    {"points": new_points, "employee_id": employee.id}
+                                )
+                                db.session.commit()
+                                
+                                print(f"DEBUG: Adding back {abs(day_difference)} points to sanwya_points for employee {employee.id}")
+                                print(f"DEBUG: Updated sanwya_points for employee {employee.id} from {original_sanwya_points} to {new_points} (difference: {day_difference} days)")
+                            else:
+                                # If extending the leave, subtract points
+                                new_points = original_sanwya_points - day_difference
+                                
+                                # Ensure points don't go below 0 when extending leave
+                                if new_points < 0:
+                                    return jsonify({
+                                        'success': False, 
+                                        'error': 'لا يوجد رصيد إجازات كافي. الرصيد الحالي: ' + str(original_sanwya_points)
+                                    }), 400
+                                
+                                # Use direct SQL update for reliable points update
+                                db.session.execute(
+                                    text(f"UPDATE employee SET sanwya_points = :points WHERE id = :employee_id"),
+                                    {"points": new_points, "employee_id": employee.id}
+                                )
+                                db.session.commit()
+                                
+                                print(f"DEBUG: Updated sanwya_points for employee {employee.id} from {original_sanwya_points} to {new_points} (difference: {day_difference} days)")
+                        
+                        elif record.type == 'عارضة':
+                            # For عارضة, adjust arda_points
+                            if day_difference < 0:
+                                # If shortening the leave, add points back
+                                new_points = original_arda_points + abs(day_difference)
+                                
+                                # Use direct SQL update for reliable points update
+                                db.session.execute(
+                                    text(f"UPDATE employee SET arda_points = :points WHERE id = :employee_id"),
+                                    {"points": new_points, "employee_id": employee.id}
+                                )
+                                db.session.commit()
+                                
+                                print(f"DEBUG: Adding back {abs(day_difference)} points to arda_points for employee {employee.id}")
+                                print(f"DEBUG: Updated arda_points for employee {employee.id} from {original_arda_points} to {new_points} (difference: {day_difference} days)")
+                            else:
+                                # If extending the leave, subtract points
+                                new_points = original_arda_points - day_difference
+                                
+                                # Ensure points don't go below 0 when extending leave
+                                if new_points < 0:
+                                    return jsonify({
+                                        'success': False, 
+                                        'error': 'لا يوجد رصيد إجازات كافي. الرصيد الحالي: ' + str(original_arda_points)
+                                    }), 400
+                                
+                                # Use direct SQL update for reliable points update
+                                db.session.execute(
+                                    text(f"UPDATE employee SET arda_points = :points WHERE id = :employee_id"),
+                                    {"points": new_points, "employee_id": employee.id}
+                                )
+                                db.session.commit()
+                                
+                                print(f"DEBUG: Updated arda_points for employee {employee.id} from {original_arda_points} to {new_points} (difference: {day_difference} days)")
+                        
+                        # Update the to_date in the record with direct SQL for consistency
+                        db.session.execute(
+                            text(f"UPDATE {request_type} SET to_date = :new_date WHERE id = :record_id"),
+                            {"new_date": new_to_date, "record_id": record.id}
+                        )
+                        db.session.commit()
+                        
+                        # Verify changes by refreshing the records
+                        db.session.refresh(employee)
+                        db.session.refresh(record)
+                        
+                        # Log final values for debugging
+                        if record.type == 'أعتيادية':
+                            print(f"VERIFICATION: sanwya_points changed from {original_sanwya_points} to {employee.sanwya_points}, expected {new_points}")
+                        elif record.type == 'عارضة':
+                            print(f"VERIFICATION: arda_points changed from {original_arda_points} to {employee.arda_points}, expected {new_points}")
+                        
+                        print(f"VERIFICATION: to_date changed from {old_to_date} to {record.to_date}, expected {new_to_date}")
+                        
+                    except Exception as e:
+                        db.session.rollback()
+                        print(f"ERROR: Transaction failed: {str(e)}")
+                        print(f"Traceback: {traceback.format_exc()}")
+                        return jsonify({'success': False, 'error': f'Failed to update points: {str(e)}'}), 500
+                
+                else:
+                    # Even if the date didn't change, update the record for consistency
+                    record.to_date = new_to_date
+                    db.session.add(record)
+                    db.session.commit()
+                
+            except ValueError as e:
+                print(f"ERROR: Invalid date format: {str(e)}")
+                return jsonify({'success': False, 'error': f'Invalid date format for {field}: {str(e)}'}), 400
+                
+        # Handle different field types for other cases
+        elif field in ['out_time', 'back_time']:
             try:
                 setattr(record, field, datetime.strptime(value, "%H:%M").time())
-            except ValueError:
-                return jsonify({'success': False, 'error': f'Invalid time format for {field}'}), 400
+                db.session.add(record)
+                db.session.commit()
+            except ValueError as e:
+                print(f"ERROR: Invalid time format: {str(e)}")
+                return jsonify({'success': False, 'error': f'Invalid time format for {field}: {str(e)}'}), 400
                 
         elif field in ['from_date', 'to_date']:
             try:
                 setattr(record, field, datetime.strptime(value, '%Y-%m-%d').date())
-            except ValueError:
-                return jsonify({'success': False, 'error': f'Invalid date format for {field}'}), 400
+                db.session.add(record)
+                db.session.commit()
+            except ValueError as e:
+                print(f"ERROR: Invalid date format: {str(e)}")
+                return jsonify({'success': False, 'error': f'Invalid date format for {field}: {str(e)}'}), 400
                 
         elif field in ['notes_agaza', 'notes_agaza_manager', 'diagnosis']:
             setattr(record, field, value)
+            db.session.add(record)
+            db.session.commit()
             
         else:
-            return jsonify({'success': False, 'error': 'Invalid field'}), 400
+            return jsonify({'success': False, 'error': f'Invalid field: {field}'}), 400
             
-        db.session.commit()
         return jsonify({'success': True})
         
     except exc.SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"ERROR: SQLAlchemy error: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
         
     except Exception as e:
-        print("Exception occurred:", e)
-        print("Traceback:", traceback.format_exc())
-        return jsonify({'success': False, 'error': str(e)}), 500
+        db.session.rollback()
+        print(f"ERROR: Exception occurred: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Unexpected error: {str(e)}'}), 500
 
 
 
@@ -2021,6 +2443,8 @@ last_recognized_id = None
 last_recognition_time = None
 lock = Lock()
 @main.route('/face-recognition')
+@login_required
+@permission_required('read')
 def face_recognition():
     return render_template('emplooye_affairs_admin/attendence.html', user_type=current_user.user_type)
 
@@ -2180,7 +2604,9 @@ def process_attendance_for_employee(employee_id):
             date=today,
             period='Work', # not used with anything 
             check_in_time=check_in_time_to_record,
-            check_out_time=check_out_time_to_record
+            check_out_time=check_out_time_to_record,
+            job_start_time=job_start_time,
+            job_end_time=job_end_time
         )
         db.session.add(attendance)
         db.session.commit()
@@ -2306,6 +2732,7 @@ def record_appearance(employee_id):
 
 @main.route('/Deduction', methods=['GET', 'POST'])
 @login_required
+@permission_required('read')
 def Deduction():
     # Fetch all deductions, ordered by submit date (most recent first)
     deductions = DED.query.order_by(DED.submit_date.desc()).all()
@@ -2473,59 +2900,91 @@ def mo2srat():
 
 @main.route('/attendnce_sign')
 @login_required
+@permission_required('read')
 def attendnce_sign():
-    today = datetime.today().strftime('%Y-%m-%d')
-    
-    # Query all employees who are not on unpaid leave
-    employees = Employee.query.filter(Employee.office_name != 'اجازة بدون مرتب' , Employee.active == 'ظهور').order_by(Employee.office_name).all()
-    print('today',today)
-    # For each employee, check if they have an attendance record for today
-    attendance_records = []
-    for employee in employees:
-        # Check if an attendance record exists for today
-        attendance = Attendance.query.filter(
-            and_(
-                Attendance.employee_id == employee.id,
-                Attendance.date == today
-            )
-        ).first()
-        print(attendance)
-        # If no record exists for today, set check_in and check_out as None
-        if attendance:
-            check_in_time = attendance.check_in_time
-            check_out_time = attendance.check_out_time
+    try:
+        # Get the date from the query parameter, default to today if not provided
+        selected_date = request.args.get('date')
+        if selected_date:
+            today = datetime.strptime(selected_date, '%Y-%m-%d').date()
         else:
-            check_in_time = None
-            check_out_time = None
+            today = datetime.today().date()
         
-        attendance_records.append({
-            'employee': employee,
-            'check_in_time': check_in_time,
-            'check_out_time': check_out_time
-        })
+        # Query all employees who are not on unpaid leave
+        employees = Employee.query.filter(Employee.office_name != 'اجازة بدون مرتب' , Employee.active == 'ظهور').order_by(Employee.office_name).all()
+        
+        # For each employee, check if they have an attendance record for the selected date
+        attendance_records = []
+        for employee in employees:
+            # Check if an attendance record exists for the selected date
+            attendance = Attendance.query.filter(
+                and_(
+                    Attendance.employee_id == employee.id,
+                    Attendance.date == today
+                )
+            ).first()
+            
+            # If no record exists for the selected date, set check_in and check_out as None
+            if attendance:
+                check_in_time = attendance.check_in_time
+                check_out_time = attendance.check_out_time
+            else:
+                check_in_time = None
+                check_out_time = None
+            
+            attendance_records.append({
+                'employee': employee,
+                'check_in_time': check_in_time,
+                'check_out_time': check_out_time
+            })
 
-    return render_template(
-        'emplooye_affairs_admin/attendnce_sign.html', 
-        attendance_records=attendance_records,
-        user_type=current_user.user_type,
-        user_office=current_user.office
-    )
-    
+        # Check if the request is AJAX
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Return only the table content for AJAX requests
+            return render_template(
+                'emplooye_affairs_admin/attendnce_sign_table.html', 
+                attendance_records=attendance_records
+            )
+        else:
+            # Return the full page for regular requests
+            return render_template(
+                'emplooye_affairs_admin/attendnce_sign.html', 
+                attendance_records=attendance_records,
+                user_type=current_user.user_type,
+                user_office=current_user.office,
+                selected_date=today.strftime('%Y-%m-%d')
+            )
+    except Exception as e:
+        # Log the error
+        print(f"Error in attendnce_sign route: {str(e)}")
+        # Return a proper error response for AJAX requests
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': str(e)}), 500
+        else:
+            flash(f"حدث خطأ: {str(e)}", 'danger')
+            return redirect(url_for('main.attendnce_sign'))
+
 @main.route('/update_time', methods=['POST'])
 def update_time():
     employee_id = request.form['employee_id']
     hours = int(request.form['hours'])
     minutes = int(request.form['minutes'])
     time_type = request.form['type']
+    selected_date = request.args.get('date')
     
     new_time = time(hour=hours, minute=minutes)
-    current_date = datetime.today().date()
+    
+    # Parse the selected date or use today's date
+    if selected_date:
+        current_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    else:
+        current_date = datetime.today().date()
     
     # Find the specific employee record
     employee = Employee.query.get(employee_id)
     if not employee:
         flash("لم يتم العثور على الموظف", "error")
-        return redirect(url_for('main.attendnce_sign'))
+        return redirect(url_for('main.attendnce_sign', date=current_date.strftime('%Y-%m-%d')))
     
     # Find the specific attendance record for this employee
     record = Attendance.query.filter_by(employee_id=employee_id, date=current_date).first()
@@ -2535,7 +2994,9 @@ def update_time():
         record = Attendance(
             employee_id=employee_id,
             date=current_date,
-            period="work"  # Default value as requested
+            period="work",
+            job_start_time=employee.job_start_time,
+            job_end_time=employee.job_end_time
         )
         db.session.add(record)
         flash("تم إضافة تسجيل جديد", "success")
@@ -2551,17 +3012,21 @@ def update_time():
     # Save the record to the database
     db.session.commit()
     
-    # Redirect back to the attendance sign page
-    return redirect(url_for('main.attendnce_sign'))
+    # Redirect back to the attendance sign page with the selected date
+    return redirect(url_for('main.attendnce_sign', date=current_date.strftime('%Y-%m-%d')))
 
 @main.route('/delete_attendence/<int:employee_id>', methods=['POST'])
 @login_required
 def delete_attendence(employee_id):
-    # Get today's date
-    today = datetime.today().date()
+    # Get the date from the query parameter, default to today if not provided
+    selected_date = request.args.get('date')
+    if selected_date:
+        current_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    else:
+        current_date = datetime.today().date()
 
-    # Find the attendance record for the given employee and today's date
-    attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
+    # Find the attendance record for the given employee and selected date
+    attendance = Attendance.query.filter_by(employee_id=employee_id, date=current_date).first()
 
     if attendance:
         try:
@@ -2576,14 +3041,15 @@ def delete_attendence(employee_id):
             db.session.rollback()
             flash('حدث خطأ أثناء حذف تسجيل الحضور.', 'danger')
     else:
-        # Flash a message if no attendance record is found for today
-        flash('لا يوجد تسجيل حضور لهذا الموظف اليوم.', 'danger')
+        # Flash a message if no attendance record is found for the selected date
+        flash('لا يوجد تسجيل حضور لهذا الموظف في هذا التاريخ.', 'danger')
 
-    # Redirect back to the attendance page or another relevant page
-    return redirect(url_for('main.attendnce_sign'))
+    # Redirect back to the attendance page with the selected date
+    return redirect(url_for('main.attendnce_sign', date=current_date.strftime('%Y-%m-%d')))
 
 @main.route('/users')
 @login_required
+@permission_required('read')
 def users():
 
     users = User.query.order_by(
@@ -2605,7 +3071,7 @@ def add_or_edit_user(user_id=None):
     if user_id:
         user = User.query.get_or_404(user_id)
         form = UserForm(current_user_id=user.id, obj=user)
-        print("Editing existing user")
+        print(f"Editing existing user: {user.username} (ID: {user.id})")
         
         # Store original values for comparison
         original_values = {
@@ -2617,54 +3083,219 @@ def add_or_edit_user(user_id=None):
             'user_type': user.user_type,
             # Photo is handled separately
         }
+        
+        # Get existing permissions
+        permissions = {}
+        existing_permissions = Permission.query.filter_by(user_id=user.id).all()
+        print(f"Found {len(existing_permissions)} existing permissions: {[(p.route_name, p.permission_type) for p in existing_permissions]}")
+        for permission in existing_permissions:
+            permissions[permission.route_name] = permission.permission_type
     else:
         user = None
         form = UserForm()
+        permissions = {}
         print("Adding new user")
+        
+    # Remove password validation for edit operation
+    if user_id and form.password.data == '':
+        form.password.validators = []  # Remove validators if editing and password is empty
 
     if form.validate_on_submit():
         print("Form is valid, processing user data")
-
-        if not user:
-            print("Creating new user")
-            user = User(
-                id=form.id.data,  # Use provided ID
-                email=form.email.data,
-                username=form.username.data,
-                user_type=form.user_type.data,
-                name=form.name.data,
-                office=form.office.data
-            )
-            user.password_hash = bcrypt.generate_password_hash(form.password.data)
-        else:
-            print("Updating existing user")
-            # Update fields conditionally based on whether they've changed
-            if form.id.data != original_values['id']:
-                user.id = form.id.data  # Update User ID if changed
-
-            if form.email.data != original_values['email']:
-                user.email = form.email.data  # Update Email if changed
-            
-            # Update password only if a new one is provided
-            if form.password.data:
+        
+        try:
+            if not user:
+                print(f"Creating new user with ID: {form.id.data}, Username: {form.username.data}")
+                user = User(
+                    id=form.id.data,  # Use provided ID
+                    email=form.email.data,
+                    username=form.username.data,
+                    user_type=form.user_type.data,
+                    name=form.name.data,
+                    office=form.office.data
+                )
                 user.password_hash = bcrypt.generate_password_hash(form.password.data)
+            else:
+                print(f"Updating existing user: {user.username} (ID: {user.id})")
+                # Update fields conditionally based on whether they've changed
+                if form.id.data != original_values['id']:
+                    user.id = form.id.data  # Update User ID if changed
+
+                if form.email.data != original_values['email']:
+                    user.email = form.email.data  # Update Email if changed
+                
+                # Update password only if a new one is provided
+                if form.password.data:
+                    user.password_hash = bcrypt.generate_password_hash(form.password.data)
+                
+                # Always update these fields regardless of change
+                user.username = form.username.data
+                user.name = form.name.data
+                user.office = form.office.data
+                user.user_type = form.user_type.data
+
+            # Add/update user to database first to get user.id if it's a new user
+            db.session.add(user)
+            db.session.commit()
+            print(f"User saved to database with ID: {user.id}")
             
-            # Always update these fields regardless of change
-            user.username = form.username.data
-            user.name = form.name.data
-            user.office = form.office.data
-            user.user_type = form.user_type.data
+            # Handle permissions
+            try:
+                print(f"Processing permissions for user ID: {user.id}")
+                
+                # Get all permission keys from the form
+                permission_keys = [key for key in request.form.keys() if key.startswith('permission_')]
+                print(f"Found {len(permission_keys)} permission fields in form: {permission_keys}")
+                
+                # Verify add_official_holiday permission is included
+                if 'permission_add_official_holiday' in permission_keys:
+                    permission_value = request.form.get('permission_add_official_holiday')
+                    print(f"Found add_official_holiday permission with value: {permission_value}")
+                else:
+                    print("WARNING: permission_add_official_holiday not found in form!")
+                
+                # First, remove all existing permissions for this user
+                if user_id:
+                    existing_permissions = Permission.query.filter_by(user_id=user.id).all()
+                    print(f"Deleting {len(existing_permissions)} existing permissions")
+                    Permission.query.filter_by(user_id=user.id).delete()
+                
+                # Add new permissions from form data
+                permissions_to_add = []
+                for permission_key in permission_keys:
+                    # Extract the route name from the permission key
+                    # The format is permission_route_name
+                    route_name = permission_key.replace('permission_', '')
+                    permission_value = request.form.get(permission_key)
+                    
+                    print(f"Processing permission: {permission_key} -> {route_name} = {permission_value}")
+                    
+                    if permission_value and permission_value != 'none':
+                        new_permission = Permission(
+                            user_id=user.id,
+                            route_name=f'main.{route_name}',
+                            permission_type=permission_value
+                        )
+                        permissions_to_add.append(new_permission)
+                
+                # Add all permissions in bulk for better performance
+                if permissions_to_add:
+                    print(f"Adding {len(permissions_to_add)} new permissions: {[(p.route_name, p.permission_type) for p in permissions_to_add]}")
+                    db.session.bulk_save_objects(permissions_to_add)
+                    db.session.commit()
+                    
+                    # Verify permissions were added successfully
+                    saved_permissions = Permission.query.filter_by(user_id=user.id).all()
+                    print(f"Verification: {len(saved_permissions)} permissions saved: {[(p.route_name, p.permission_type) for p in saved_permissions]}")
+                    
+                    # Check specifically for add_official_holiday permission
+                    holiday_perm = Permission.query.filter_by(user_id=user.id, route_name='main.add_official_holiday').first()
+                    if holiday_perm:
+                        print(f"Confirmed add_official_holiday permission saved: {holiday_perm.permission_type}")
+                    else:
+                        print("WARNING: add_official_holiday permission not saved!")
+                else:
+                    print("No permissions to add - all were set to 'none'")
+                
+                # Log the permission count
+                print(f"Added {len(permissions_to_add)} permissions for user {user.id}")
+                
+                flash(f'User {"added" if not user_id else "updated"} successfully with {len(permissions_to_add)} permissions', 'success')
+                return redirect(url_for('main.users'))
+                
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error setting permissions: {str(e)}', 'danger')
+                print(f"Error in permission processing: {str(e)}")
+                # Still return the user to the form, but with an error
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error saving user: {str(e)}', 'danger')
+            print(f"Error in user processing: {str(e)}")
 
+    else:
+        # Form validation failed
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+                
+        print(f"Form validation failed with errors: {form.errors}")
+    
+    return render_template('emplooye_affairs_admin/add_users.html', 
+                          form=form, 
+                          user=user, 
+                          permissions=permissions,
+                          user_type=current_user.user_type, 
+                          user_office=current_user.office)
 
-
-        db.session.add(user)
-        db.session.commit()
-        flash(f'User {"added" if not user_id else "updated"} successfully', 'success')
-        print(f"User {'added' if not user_id else 'updated'}: {user}")
-        return redirect(url_for('main.users'))
-
-    print(f"Form validation failed with errors: {form.errors}")
-    return render_template('emplooye_affairs_admin/add_users.html', form=form, user=user, user_type=current_user.user_type, user_office=current_user.office)
+# Add a new API endpoint for bulk permission updates
+@main.route('/api/update_user_permissions/<int:user_id>', methods=['POST'])
+@login_required
+def update_user_permissions(user_id):
+    """API endpoint to update user permissions in bulk"""
+    user = User.query.get_or_404(user_id)
+    
+    print(f"=== API CALLED: Update permissions for user {user_id} ({user.username}) ===")
+    
+    try:
+        # Get the permission data from the request
+        permission_data = request.json
+        
+        print(f"Received permission data: {permission_data}")
+        
+        if not permission_data:
+            print("ERROR: No permission data provided")
+            return jsonify({'success': False, 'message': 'No permission data provided'}), 400
+        
+        # Start a transaction
+        with db.session.begin():
+            # Remove all existing permissions for this user
+            existing_permissions = Permission.query.filter_by(user_id=user_id).all()
+            print(f"Existing permissions before update: {[(p.route_name, p.permission_type) for p in existing_permissions]}")
+            
+            # We will only update the routes specified in the request
+            for route_name, permission_type in permission_data.items():
+                # First find if this permission already exists
+                existing_perm = Permission.query.filter_by(
+                    user_id=user_id, 
+                    route_name=route_name
+                ).first()
+                
+                if existing_perm:
+                    if permission_type == 'none':
+                        # Delete the permission if set to none
+                        print(f"Deleting permission: {route_name}")
+                        db.session.delete(existing_perm)
+                    else:
+                        # Update the existing permission
+                        print(f"Updating permission: {route_name} to {permission_type}")
+                        existing_perm.permission_type = permission_type
+                else:
+                    if permission_type != 'none':
+                        # Add new permission
+                        print(f"Adding new permission: {route_name} = {permission_type}")
+                        new_permission = Permission(
+                            user_id=user_id,
+                            route_name=route_name,
+                            permission_type=permission_type
+                        )
+                        db.session.add(new_permission)
+        
+        # After commit, get updated permissions
+        updated_permissions = Permission.query.filter_by(user_id=user_id).all()
+        print(f"Permissions after update: {[(p.route_name, p.permission_type) for p in updated_permissions]}")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Updated permissions for user {user.username}',
+            'updated_routes': list(permission_data.keys())
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERROR in update_user_permissions: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 @main.route('/delete_user/<int:user_id>', methods=['POST'])
 @login_required
@@ -2680,6 +3311,7 @@ def delete_user(user_id):
 
 @main.route('/employee_rates', methods=['GET', 'POST'])
 @login_required
+@permission_required('read')
 def employee_rates():
     if request.method == 'GET':
         user_office = current_user.office
@@ -2729,3 +3361,788 @@ def employee_rates():
             db.session.rollback()
             print(f"Error saving rates: {str(e)}")
             return jsonify({'success': False, 'error': str(e)}), 500
+
+@main.route('/employee_history/<int:employee_id>', methods=['GET', 'POST'])
+@login_required
+def employee_history(employee_id):
+    # Get the employee data
+    employee = Employee.query.get_or_404(employee_id)
+    
+    # Initialize report data
+    report_data = []
+    report_type = "overview"
+    date_from = None
+    date_to = None
+    
+    # Define default date range based on employee type
+    today = datetime.today().date()
+    current_year = today.year
+    
+    # Determine date range based on employee type (similar to calculate_agaza_duration_this_year)
+    if employee.emp_type == 'عقد':
+        # For contract employees, use contract dates if they exist
+        if employee.contract_start_date and employee.contract_end_date:
+            date_from = employee.contract_start_date
+            date_to = employee.contract_end_date
+            
+            # If today is past the contract end date, use the contract end date
+            if today > employee.contract_end_date:
+                date_to = employee.contract_end_date
+        else:
+            # If contract dates are missing, fall back to standard fiscal year
+            july_first_current_year = datetime(current_year, 7, 1).date()
+            
+            if today >= july_first_current_year:
+                date_from = july_first_current_year
+                date_to = datetime(current_year + 1, 6, 30).date()
+            else:
+                date_from = datetime(current_year - 1, 7, 1).date()
+                date_to = datetime(current_year, 6, 30).date()
+    else:
+        # For non-contract employees, use standard fiscal year
+        july_first_current_year = datetime(current_year, 7, 1).date()
+        
+        if today >= july_first_current_year:
+            date_from = july_first_current_year
+            date_to = datetime(current_year + 1, 6, 30).date()
+        else:
+            date_from = datetime(current_year - 1, 7, 1).date()
+            date_to = datetime(current_year, 6, 30).date()
+    
+    # Convert dates to string format for form
+    date_from_str = date_from.strftime('%Y-%m-%d')
+    date_to_str = date_to.strftime('%Y-%m-%d')
+    
+    # Handle form submission for specific report types
+    if request.method == 'POST':
+        report_type = request.form.get('report_type', 'overview')
+        date_from_str = request.form.get('date_from', date_from_str)
+        date_to_str = request.form.get('date_to', date_to_str)
+        
+        # Parse dates
+        try:
+            date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+            date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('تاريخ غير صالح. يرجى استخدام تنسيق YYYY-MM-DD.', 'danger')
+            return redirect(url_for('main.employee_history', employee_id=employee_id))
+        
+        # Generate appropriate report based on report_type
+        if report_type == 'check_in_delays':
+            report_data = handle_attendance_reports(
+                report_type='check_in_delays',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id,
+                include_delay_minutes=True
+            )
+        elif report_type == 'momrya':
+            report_data = handle_attendance_reports(
+                report_type='momrya',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )
+        elif report_type == 'ezn':
+            report_data = handle_attendance_reports(
+                report_type='ezn',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )
+        elif report_type == 'agaza':
+            report_data = handle_attendance_reports(
+                report_type='agaza',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )
+        elif report_type == 'clinic':
+            report_data = handle_attendance_reports(
+                report_type='clinic',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )
+        elif report_type == 'altmas':
+            report_data = handle_attendance_reports(
+                report_type='altmas',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )
+        elif report_type == 'absent':
+            report_data = get_absent_employees(
+                employee_id=employee_id,
+                date_from=date_from,
+                date_to=date_to
+            )
+    
+    # If no data found for a specific report, show a message
+    if report_type != 'overview' and not report_data:
+        flash(f'لا توجد بيانات لـ {report_type} في الفترة المحددة', 'warning')
+    
+    # Define the translation dictionary (similar to employee_report route)
+    translations = {
+        'Employee Name': 'اسم الموظف',
+        'Office': 'المكتب',
+        'Time': 'الوقت',
+        'Delay Time': 'وقت التأخير',
+        'Leave Early Time': 'وقت المغادرة المبكر',
+        'date': 'التاريخ',
+        'clinic_type': 'نوع العيادة',
+        'back_time': 'وقت العودة',
+        'result': 'النتيجة',
+        'From Time': 'من الوقت',
+        'From Date': 'من تاريخ',
+        'To Date': 'إلى تاريخ',
+        'To Time': 'إلى الوقت',
+        'Out Time': 'وقت الخروج',
+        'Back Time': 'وقت العوده',
+        'atydya_points': 'نقاط اعتيادية',
+        'arda_points': 'نقاط عارضة',
+        'atydya_all': 'الكل الاعتيادية',
+        'arda_all': 'الكل العارضة',
+        'old_points': 'النقاط القديمة',
+        'from_date': 'من التاريخ',
+        'to_date': 'إلى التاريخ',
+        'submit_date': 'تاريخ التقديم',
+        'agza_type': 'نوع الاجازة',
+        'Alternative': 'البديل',
+        'Approval Status': 'حالة الموافقة',
+        'Submit Date': 'تاريخ الطلب',
+        'Type': 'نوع',
+        'clone': 'البديل',
+        'name': 'الاسم',
+        'office_name': 'المكتب',
+        'Message': 'الحالة',
+        'Petition': 'الالتماس',
+        'Diagnosis': 'تشخيص العيادة',
+        'Clinic Type': 'نوع العيادة',
+        'Date': 'التاريخ',
+        'Rest Day': 'الراحة',
+        'check_in_time': 'موعد العمل',
+        'check_out_time':'موعد الانصراف',
+        'notes_agaza_manager': 'ملاحظات المدير',
+        'notes_agaza': 'ملاحظات الاجازة',
+        'Arabic day':'يوم',
+        'in':"حضور",
+        'out':'انصرف',
+        'Reason':'سبب المأمورية',
+        'deducat': 'تأثير الخصم'
+    }
+    
+    # Get summary data for the overview
+    if report_type == 'overview':
+        # Get leave balances
+        leave_balance = {
+            'arda_points': employee.arda_points,
+            'sanwya_points': employee.sanwya_points,
+            'tar7eel_points': employee.tar7eel_points
+        }
+        
+        # Get attendance stats
+        attendance_stats = {
+            'check_in_delays': len(handle_attendance_reports(
+                report_type='check_in_delays',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id,
+                include_delay_minutes=True
+            )),
+            'absences': len(get_absent_employees(
+                employee_id=employee_id,
+                date_from=date_from,
+                date_to=date_to
+            )),
+            'leaves': len(handle_attendance_reports(
+                report_type='agaza',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'ezns': len(handle_attendance_reports(
+                report_type='ezn',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'clinics': len(handle_attendance_reports(
+                report_type='clinic',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'momryas': len(handle_attendance_reports(
+                report_type='momrya',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'altmas': len(handle_attendance_reports(
+                report_type='altmas',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            ))
+        }
+        
+        # Format dates for Arabic display
+        date_from_arabic = format_date_to_arabic(date_from)
+        date_to_arabic = format_date_to_arabic(date_to)
+        
+        return render_template(
+            'emplooye_affairs_admin/employee_history.html',
+            employee=employee,
+            leave_balance=leave_balance,
+            attendance_stats=attendance_stats,
+            date_from=date_from_str,
+            date_to=date_to_str,
+            date_from_arabic=date_from_arabic,
+            date_to_arabic=date_to_arabic,
+            report_type=report_type,
+            translations=translations
+        )
+    
+    # Format dates for Arabic display
+    date_from_arabic = format_date_to_arabic(date_from)
+    date_to_arabic = format_date_to_arabic(date_to)
+    
+    return render_template(
+        'emplooye_affairs_admin/employee_history.html',
+        employee=employee,
+        report_data=report_data,
+        date_from=date_from_str,
+        date_to=date_to_str,
+        date_from_arabic=date_from_arabic,
+        date_to_arabic=date_to_arabic,
+        report_type=report_type,
+        translations=translations
+    )
+
+@main.route('/employee_history_pdf/<int:employee_id>/<string:report_type>', methods=['GET'])
+@login_required
+def employee_history_pdf(employee_id, report_type):
+    # Get the employee data
+    employee = Employee.query.get_or_404(employee_id)
+    
+    # Get date parameters from query string
+    date_from_str = request.args.get('date_from')
+    date_to_str = request.args.get('date_to')
+    
+    # Parse dates
+    try:
+        date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        # If dates aren't provided or are invalid, use default dates based on employee type
+        today = datetime.today().date()
+        current_year = today.year
+        
+        # Determine date range based on employee type (similar to calculate_agaza_duration_this_year)
+        if employee.emp_type == 'عقد':
+            # For contract employees, use contract dates if they exist
+            if employee.contract_start_date and employee.contract_end_date:
+                date_from = employee.contract_start_date
+                date_to = employee.contract_end_date
+                
+                # If today is past the contract end date, use the contract end date
+                if today > employee.contract_end_date:
+                    date_to = employee.contract_end_date
+            else:
+                # If contract dates are missing, fall back to standard fiscal year
+                july_first_current_year = datetime(current_year, 7, 1).date()
+                
+                if today >= july_first_current_year:
+                    date_from = july_first_current_year
+                    date_to = datetime(current_year + 1, 6, 30).date()
+                else:
+                    date_from = datetime(current_year - 1, 7, 1).date()
+                    date_to = datetime(current_year, 6, 30).date()
+        else:
+            # For non-contract employees, use standard fiscal year
+            july_first_current_year = datetime(current_year, 7, 1).date()
+            
+            if today >= july_first_current_year:
+                date_from = july_first_current_year
+                date_to = datetime(current_year + 1, 6, 30).date()
+            else:
+                date_from = datetime(current_year - 1, 7, 1).date()
+                date_to = datetime(current_year, 6, 30).date()
+    
+    # Generate appropriate report based on report_type
+    report_data = []
+    if report_type == 'check_in_delays':
+        report_data = handle_attendance_reports(
+            report_type='check_in_delays',
+            date_from=date_from,
+            date_to=date_to,
+            id=employee_id,
+            include_delay_minutes=True
+        )
+    elif report_type == 'momrya':
+        report_data = handle_attendance_reports(
+            report_type='momrya',
+            date_from=date_from,
+            date_to=date_to,
+            id=employee_id
+        )
+    elif report_type == 'ezn':
+        report_data = handle_attendance_reports(
+            report_type='ezn',
+            date_from=date_from,
+            date_to=date_to,
+            id=employee_id
+        )
+    elif report_type == 'agaza':
+        report_data = handle_attendance_reports(
+            report_type='agaza',
+            date_from=date_from,
+            date_to=date_to,
+            id=employee_id
+        )
+    elif report_type == 'clinic':
+        report_data = handle_attendance_reports(
+            report_type='clinic',
+            date_from=date_from,
+            date_to=date_to,
+            id=employee_id
+        )
+    elif report_type == 'altmas':
+        report_data = handle_attendance_reports(
+            report_type='altmas',
+            date_from=date_from,
+            date_to=date_to,
+            id=employee_id
+        )
+    elif report_type == 'absent':
+        report_data = get_absent_employees(
+            employee_id=employee_id,
+            date_from=date_from,
+            date_to=date_to
+        )
+    
+    # For overview, get summary data
+    if report_type == 'overview':
+        # Get leave balances
+        leave_balance = {
+            'arda_points': employee.arda_points,
+            'sanwya_points': employee.sanwya_points,
+            'tar7eel_points': employee.tar7eel_points
+        }
+        
+        # Get attendance stats
+        attendance_stats = {
+            'check_in_delays': len(handle_attendance_reports(
+                report_type='check_in_delays',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id,
+                include_delay_minutes=True
+            )),
+            'absences': len(get_absent_employees(
+                employee_id=employee_id,
+                date_from=date_from,
+                date_to=date_to
+            )),
+            'leaves': len(handle_attendance_reports(
+                report_type='agaza',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'ezns': len(handle_attendance_reports(
+                report_type='ezn',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'clinics': len(handle_attendance_reports(
+                report_type='clinic',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'momryas': len(handle_attendance_reports(
+                report_type='momrya',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            )),
+            'altmas': len(handle_attendance_reports(
+                report_type='altmas',
+                date_from=date_from,
+                date_to=date_to,
+                id=employee_id
+            ))
+        }
+    else:
+        leave_balance = None
+        attendance_stats = None
+    
+    # Format dates for Arabic display
+    date_from_arabic = format_date_to_arabic(date_from)
+    date_to_arabic = format_date_to_arabic(date_to)
+    current_date_arabic = format_date_to_arabic(datetime.today().date())
+    
+    # Define the translation dictionary (similar to employee_report route)
+    translations = {
+        'Employee Name': 'اسم الموظف',
+        'Office': 'المكتب',
+        'Time': 'الوقت',
+        'Delay Time': 'وقت التأخير',
+        'Leave Early Time': 'وقت المغادرة المبكر',
+        'date': 'التاريخ',
+        'clinic_type': 'نوع العيادة',
+        'back_time': 'وقت العودة',
+        'result': 'النتيجة',
+        'From Time': 'من الوقت',
+        'From Date': 'من تاريخ',
+        'To Date': 'إلى تاريخ',
+        'To Time': 'إلى الوقت',
+        'Out Time': 'وقت الخروج',
+        'Back Time': 'وقت العوده',
+        'atydya_points': 'نقاط اعتيادية',
+        'arda_points': 'نقاط عارضة',
+        'atydya_all': 'الكل الاعتيادية',
+        'arda_all': 'الكل العارضة',
+        'old_points': 'النقاط القديمة',
+        'from_date': 'من التاريخ',
+        'to_date': 'إلى التاريخ',
+        'submit_date': 'تاريخ التقديم',
+        'agza_type': 'نوع الاجازة',
+        'Alternative': 'البديل',
+        'Approval Status': 'حالة الموافقة',
+        'Submit Date': 'تاريخ الطلب',
+        'Type': 'نوع',
+        'clone': 'البديل',
+        'name': 'الاسم',
+        'office_name': 'المكتب',
+        'Message': 'الحالة',
+        'Petition': 'الالتماس',
+        'Diagnosis': 'تشخيص العيادة',
+        'Clinic Type': 'نوع العيادة',
+        'Date': 'التاريخ',
+        'Rest Day': 'الراحة',
+        'check_in_time': 'موعد العمل',
+        'check_out_time':'موعد الانصراف',
+        'notes_agaza_manager': 'ملاحظات المدير',
+        'notes_agaza': 'ملاحظات الاجازة',
+        'Arabic day':'يوم',
+        'in':"حضور",
+        'out':'انصرف',
+        'Reason':'سبب المأمورية',
+        'deducat': 'تأثير الخصم',
+        'arabic_day': 'اليوم'
+    }
+    
+    return render_template(
+        'emplooye_affairs_admin/employee_history_pdf.html',
+        employee=employee,
+        report_data=report_data,
+        date_from_arabic=date_from_arabic,
+        date_to_arabic=date_to_arabic,
+        current_date=current_date_arabic,
+        report_type=report_type,
+        translations=translations,
+        leave_balance=leave_balance,
+        attendance_stats=attendance_stats
+    )
+
+@main.route('/api/report_count', methods=['POST'])
+@login_required
+def get_report_count():
+    # Get request data
+    data = request.json
+    report_type = data.get('report_type')
+    date_from = data.get('date_from')
+    date_to = data.get('date_to')
+    employee_id = data.get('employee_id')
+    office = data.get('office')
+    
+    # Default response
+    response = {'count': 0}
+    
+    try:
+        # Get count based on report type
+        if report_type == 'absent':
+            # For absent reports
+            report_data = get_absent_employees(
+                specific_day=None, 
+                date_from=date_from, 
+                date_to=date_to, 
+                employee_id=employee_id, 
+                office_name=office
+            )
+            response['count'] = len(report_data) if report_data else 0
+            
+        elif report_type in ['check_in_attendance', 'check_in_delays', 'momrya', 'check_out_attendance', 
+                           'check_out_ahead', 'no_check_out', 'rased', 'ezn', 'agaza', 'clinic', 
+                           'altmas', 'rest', 'check_all']:
+            # For other report types
+            report_data = handle_attendance_reports(
+                report_type=report_type, 
+                date_from=date_from, 
+                date_to=date_to, 
+                id=employee_id,
+                employee_office_name=office,
+                count_only=True  # Indicate we only need the count
+            )
+            
+            # If the result is an integer (count only), use it directly
+            if isinstance(report_data, int):
+                response['count'] = report_data
+            # Otherwise, count the number of records
+            else:
+                response['count'] = len(report_data) if report_data else 0
+    
+    except Exception as e:
+        # Log the error but don't expose details to client
+        print(f"Error getting report count: {str(e)}")
+        response['error'] = "An error occurred while getting the report count"
+    
+    return jsonify(response)
+
+@main.route('/employee_report_ajax', methods=['POST'])
+@login_required
+def employee_report_ajax():
+    """AJAX endpoint for fetching report data without rendering a full page"""
+    # Define the translation dictionary
+    translations = {
+        'Employee Name': 'اسم الموظف',
+        'Office': 'المكتب',
+        'Time': 'الوقت',
+        'Delay Time': 'وقت التأخير',
+        'Leave Early Time': 'وقت المغادرة المبكر',
+        'date': 'التاريخ',
+        'clinic_type': 'نوع العيادة',
+        'back_time': 'وقت العودة',
+        'result': 'النتيجة',
+        'From Time': 'من الوقت',
+        'From Date': 'من تاريخ',
+        'To Date': 'إلى تاريخ',
+        'To Time': 'إلى الوقت',
+        'Out Time': 'وقت الخروج',
+        'Back Time': 'وقت العوده',
+        'atydya_points': 'نقاط اعتيادية',
+        'arda_points': 'نقاط عارضة',
+        'atydya_all': 'الكل الاعتيادية',
+        'arda_all': 'الكل العارضة',
+        'old_points': 'النقاط القديمة',
+        'from_date': 'من التاريخ',
+        'to_date': 'إلى التاريخ',
+        'submit_date': 'تاريخ التقديم',
+        'agza_type': 'نوع الاجازة',
+        'Alternative': 'البديل',
+        'Approval Status': 'حالة الموافقة',
+        'Submit Date': 'تاريخ الطلب',
+        'Type': 'نوع',
+        'clone': 'البديل',
+        'name': 'الاسم',
+        'office_name': 'المكتب',
+        'Message': 'الحالة',
+        'Petition': 'الالتماس',
+        'Diagnosis': 'تشخيص العيادة',
+        'Clinic Type': 'نوع العيادة',
+        'Date': 'التاريخ',
+        'Rest Day': 'الراحة',
+        'check_in_time': 'موعد العمل',
+        'check_out_time':'موعد الانصراف',
+        'notes_agaza_manager': 'ملاحظات المدير',
+        'notes_agaza': 'ملاحظات الاجازة',
+        'Arabic day':'يوم',
+        'in':"حضور",
+        'out':'انصرف',
+        'Reason':'سبب المأمورية'
+    }
+
+    # Get parameters from form data
+    report_type = request.form.get('report_type')
+    date_from = request.form.get('date_from')
+    date_to = request.form.get('date_to')
+    employee_id = request.form.get('employee_name')
+    user_office = current_user.office
+    
+    # Initialize empty report data
+    report_data = []
+    
+    try:
+        # Process based on report type
+        if report_type == 'absent':
+            # Handle absent report
+            report_data = get_absent_employees(
+                specific_day=None, 
+                date_from=date_from, 
+                date_to=date_to, 
+                employee_id=employee_id, 
+                office_name=user_office
+            )
+        
+        elif report_type in ['check_in_attendance', 'check_in_delays', 'momrya', 'check_out_attendance', 
+                          'check_out_ahead', 'no_check_out', 'rased', 'ezn', 'agaza', 'clinic', 
+                          'altmas', 'rest', 'check_all']:
+            # Handle attendance related reports using SQL queries
+            report_data = handle_attendance_reports(
+                report_type=report_type, 
+                date_from=date_from, 
+                date_to=date_to, 
+                id=employee_id, 
+                include_delay_minutes=True, 
+                include_leave_early_time=True
+            )
+        
+        # Return JSON response
+        return jsonify({
+            'success': True,
+            'report_type': report_type,
+            'report_data': report_data,
+            'count': len(report_data)
+        })
+        
+    except Exception as e:
+        # Log the error and return error response
+        print(f"Error generating report data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'report_data': []
+        })
+
+@main.route('/api/employee_info/<int:employee_id>')
+@login_required
+def get_employee_info_api(employee_id):
+    """API endpoint to get basic employee information"""
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        
+        # Return basic employee info
+        return jsonify({
+            'id': employee.id,
+            'name': employee.name,
+            'office_name': employee.office_name,
+            'period': employee.period,
+            'job_name_modli': employee.job_name_modli
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# New route to handle base template with permissions
+@main.route('/admin_base')
+@login_required
+@permission_required('read')
+def admin_base():
+    """
+    Route that serves as a base for admin pages.
+    Validates that the user has permissions to access the admin interface.
+    """
+    # Get user permissions from the context processor data
+    context = inject_permissions()
+    user_permissions = context.get('user_permissions', {})
+    
+    # Log debugging information
+    print(f"User ID: {current_user.id}, Name: {current_user.name}, Type: {current_user.user_type}")
+    print(f"Found {len(user_permissions)} permissions for user {current_user.id}")
+    
+    # For each permission, log what it is for debugging
+    for route, perm in user_permissions.items():
+        print(f"Route: {route}, Permission: {perm}")
+    
+    # If the user doesn't have permissions for any routes, redirect them
+    if not any(perm in ['read', 'write', 'both'] for perm in user_permissions.values()):
+        flash('You do not have permission to access the admin panel.', 'danger')
+        return redirect(url_for('main.login'))
+    
+    # The template will automatically receive user_permissions via the context processor
+    return render_template('emplooye_affairs_admin/admin_base.html')
+
+# Function to get user permissions context 
+# This can be used by other views to include permission data
+def get_user_permissions_context():
+    """Helper function to get user permissions for templates"""
+    context = {
+        'user_type': current_user.user_type,
+        'user_office': current_user.office,
+    }
+    
+    # Get user permissions if the user is authenticated
+    if current_user.is_authenticated:
+        # Get all routes that may have permissions
+        available_routes = [
+            'main.admin_dashboard', 'main.admin_users', 'main.add_request', 'main.requests_veiws',
+            'main.admin_reports', 'main.employee_report', 'main.mo2srat', 'main.tmam',
+            'main.attendnce_sign', 'main.users', 'main.Deduction', 'main.employee_rates',
+            'main.official_holidays', 'main.add_official_holiday', 'main.job_schedule_override', 'main.admin_settings',
+            'main.face_recognition'
+        ]
+        
+        # Get all permissions for the current user directly from the database
+        user_perms = Permission.query.filter_by(user_id=current_user.id).all()
+        
+        # Create a dictionary of route_name -> permission_type
+        perm_dict = {perm.route_name: perm.permission_type for perm in user_perms}
+        
+        # For each available route, check if the user has permission
+        user_permissions = {}
+        for route in available_routes:
+            user_permissions[route] = perm_dict.get(route)
+            
+        context['user_permissions'] = user_permissions
+    
+    return context
+
+# Context processor to automatically provide permission data to all templates
+@main.context_processor
+def inject_permissions():
+    """
+    Context processor to inject user permissions into all templates.
+    This makes user_permissions available in all templates without having to pass it explicitly in each view.
+    """
+    context = {}
+    
+    if current_user.is_authenticated:
+        # Add user type and office to context
+        context['user_type'] = current_user.user_type
+        context['user_office'] = current_user.office
+        
+        # Get all available routes that could have permissions
+        available_routes = [
+            'main.admin_dashboard', 'main.admin_users', 'main.add_request', 'main.requests_veiws',
+            'main.admin_reports', 'main.employee_report', 'main.mo2srat', 'main.tmam',
+            'main.attendnce_sign', 'main.users', 'main.Deduction', 'main.employee_rates',
+            'main.official_holidays', 'main.add_official_holiday', 'main.job_schedule_override', 'main.admin_settings',
+            'main.face_recognition'
+        ]
+        
+        # Get all permissions for the current user directly from the database
+        user_perms = Permission.query.filter_by(user_id=current_user.id).all()
+        
+        # Create a dictionary of route_name -> permission_type
+        perm_dict = {perm.route_name: perm.permission_type for perm in user_perms}
+        
+        # For each available route, check if the user has permission
+        user_permissions = {}
+        for route in available_routes:
+            user_permissions[route] = perm_dict.get(route)
+        
+        context['user_permissions'] = user_permissions
+        
+    return context
+
+@main.route('/api/get_employee_id_by_name', methods=['GET'])
+@login_required
+def get_employee_id_by_name():
+    employee_name = request.args.get('name')
+    if not employee_name:
+        return jsonify({'error': 'No employee name provided'}), 400
+    
+    try:
+        # Try to find the employee by name
+        employee = Employee.query.filter_by(name=employee_name).first()
+        
+        if employee:
+            return jsonify({'employee_id': employee.id})
+        else:
+            return jsonify({'error': 'Employee not found'}), 404
+    except Exception as e:
+        print(f"Error finding employee by name: {str(e)}")
+        return jsonify({'error': str(e)}), 500

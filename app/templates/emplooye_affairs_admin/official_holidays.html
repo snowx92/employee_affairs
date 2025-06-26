@@ -2,6 +2,9 @@
 {% block title %}الاجازات الرسمية{% endblock %}
 {% block admin_content %}
 
+
+<!-- End debug info -->
+
 <div class="jumbotron">
     <div class="container">
         <h1 class="display-4">
@@ -28,7 +31,7 @@
         {% endif %}
     {% endwith %}
 
-    {% if user_type == 'admin' %}
+    {% if user_permissions and (user_permissions.get('main.add_official_holiday') in ['write', 'both']) %}
     <div class="d-flex justify-content-end mb-4">
         <a href="{{ url_for('main.add_official_holiday') }}" class="btn btn-success btn-lg button_font">اضافة اجازة</a>
     </div>
@@ -45,7 +48,7 @@
                     <th onclick="sortTable(3)">الي <span id="arrow3" class="sort-arrow"></span></th>
                     <th onclick="sortTable(4)">النوع <span id="arrow4" class="sort-arrow"></span></th>
                     <th onclick="sortTable(5)">تاريخ تسجيل الاجازة <span id="arrow5" class="sort-arrow"></span></th>
-                    {% if user_type == 'admin' %}
+                    {% if user_permissions and (user_permissions.get('main.official_holidays') in ['write', 'both']) %}
                     <th>الاجراءات</th>
                     {% endif %}
                 </tr>
@@ -59,7 +62,7 @@
                     <td>{{ holiday.to_date.strftime('%Y-%m-%d') }}</td>
                     <td>{{ holiday.type }}</td>
                     <td>{{ holiday.submit_date.strftime('%Y-%m-%d') }}</td>
-                    {% if user_type == 'admin' %}
+                    {% if user_permissions and (user_permissions.get('main.official_holidays') in ['write', 'both']) %}
                     <td>
                         <a href="{{ url_for('main.edit_official_holiday', holiday_id=holiday.id) }}" class="btn btn-primary btn-sm mx-1">تعديل</a>
                         <form action="{{ url_for('main.delete_official_holiday', holiday_id=holiday.id) }}" method="post" style="display:inline;">
@@ -135,6 +138,52 @@
     const arrow = document.getElementById('arrow' + columnIndex);
     arrow.innerText = ascending ? '↑' : '↓';
 }
+
+// Function to update the add_official_holiday permission directly
+function updateAddOfficialHolidayPermission(userId, permissionType) {
+    if (!userId) {
+        alert('Please enter a user ID');
+        return;
+    }
+    
+    console.log(`Updating permission for user ${userId} to ${permissionType}`);
+    
+    // Create a permission object with just the add_official_holiday permission
+    const permissionData = {
+        'main.add_official_holiday': permissionType // 'read', 'write', or 'both'
+    };
+    
+    // Call the API to update the permission
+    fetch(`/api/update_user_permissions/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(permissionData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            console.log('Permission updated successfully:', data);
+            alert(`Permission updated: ${data.message}`);
+            // Reload the page to see the new permission
+            window.location.reload();
+        } else {
+            console.error('API returned error:', data);
+            alert(`Error: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating permission:', error);
+        alert('An error occurred while updating the permission: ' + error.message);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const pageSize = 5;
     let currentPage = 1;
@@ -204,9 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(button);
         });
     }
-
-
-
 
     // Initialize pagination and table
     paginateTable();

@@ -1,0 +1,344 @@
+{% extends "emplooye_affairs_admin/admin_base.html" %}
+
+{% block title %}سجل الموظف - {{ employee.name }}{% endblock %}
+
+{% block admin_content %}
+<style>
+    .card {
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .stats-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 15px;
+        min-width: 200px;
+        flex: 1;
+    }
+    
+    .stat-card .number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 8px;
+    }
+    
+    .stat-card .label {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    
+    .report-filters {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .date-range {
+        margin-bottom: 15px;
+        text-align: center;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .report-btn {
+        margin-right: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .employee-info {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .employee-info h3 {
+        margin-bottom: 15px;
+        color: #343a40;
+    }
+    
+    .info-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+    
+    .info-row > div {
+        flex: 1;
+        min-width: 250px;
+        margin-bottom: 10px;
+    }
+    
+    .info-label {
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .contract-info {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #343a40;
+        color: white;
+        z-index: 1;
+    }
+</style>
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">لوحة التحكم</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.admin_users') }}">الموظفون</a></li>
+            <li class="breadcrumb-item active" aria-current="page">سجل الموظف - {{ employee.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Employee Information -->
+    <div class="employee-info">
+        <h3 class="text-center">بيانات الموظف</h3>
+        <div class="info-row">
+            <div>
+                <span class="info-label">اسم الموظف:</span> {{ employee.name }}
+            </div>
+            <div>
+                <span class="info-label">المكتب:</span> {{ employee.office_name }}
+            </div>
+            <div>
+                <span class="info-label">الوظيفة:</span> {{ employee.job_name_modli }}
+            </div>
+        </div>
+        <div class="info-row">
+            <div>
+                <span class="info-label">رقم الهاتف:</span> {{ employee.phone_number }}
+            </div>
+            <div>
+                <span class="info-label">الفترة:</span> {{ employee.period }}
+            </div>
+            <div>
+                <span class="info-label">الحالة:</span> {{ employee.active }}
+            </div>
+        </div>
+        
+        {% if employee.emp_type == 'عقد' %}
+        <div class="contract-info mt-3">
+            <div class="info-row">
+                <div>
+                    <span class="info-label">نوع التوظيف:</span> {{ employee.emp_type }}
+                </div>
+                <div>
+                    <span class="info-label">تاريخ بداية العقد:</span> 
+                    {% if employee.contract_start_date %}
+                        {{ employee.contract_start_date.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        غير محدد
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="info-label">تاريخ نهاية العقد:</span> 
+                    {% if employee.contract_end_date %}
+                        {{ employee.contract_end_date.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        غير محدد
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Report Date Range and Filters -->
+    <div class="report-filters">
+        <div class="date-range">
+            <h5>الفترة: {{ date_from_arabic }} إلى {{ date_to_arabic }}</h5>
+        </div>
+        
+        <form method="post" action="{{ url_for('main.employee_history', employee_id=employee.id) }}" class="row g-3">
+            <div class="col-md-6">
+                <label for="date_from" class="form-label">من تاريخ</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-6">
+                <label for="date_to" class="form-label">إلى تاريخ</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            
+            <div class="col-12 mt-3">
+                <h5>اختر نوع التقرير:</h5>
+                <div class="btn-group" role="group">
+                    <button type="submit" name="report_type" value="overview" class="btn btn-primary report-btn {% if report_type == 'overview' %}active{% endif %}">نظرة عامة</button>
+                    <button type="submit" name="report_type" value="check_in_delays" class="btn btn-primary report-btn {% if report_type == 'check_in_delays' %}active{% endif %}">تأخيرات الحضور</button>
+                    <button type="submit" name="report_type" value="momrya" class="btn btn-primary report-btn {% if report_type == 'momrya' %}active{% endif %}">المأموريات</button>
+                    <button type="submit" name="report_type" value="ezn" class="btn btn-primary report-btn {% if report_type == 'ezn' %}active{% endif %}">الإذن</button>
+                    <button type="submit" name="report_type" value="agaza" class="btn btn-primary report-btn {% if report_type == 'agaza' %}active{% endif %}">الإجازات</button>
+                    <button type="submit" name="report_type" value="clinic" class="btn btn-primary report-btn {% if report_type == 'clinic' %}active{% endif %}">العيادة</button>
+                    <button type="submit" name="report_type" value="altmas" class="btn btn-primary report-btn {% if report_type == 'altmas' %}active{% endif %}">الالتماسات</button>
+                    <button type="submit" name="report_type" value="absent" class="btn btn-primary report-btn {% if report_type == 'absent' %}active{% endif %}">الغياب</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Display Overview -->
+    {% if report_type == 'overview' %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">أرصدة الإجازات</h5>
+        </div>
+        <div class="card-body">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="number">{{ leave_balance.arda_points }}</div>
+                    <div class="label">رصيد العارضة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ leave_balance.sanwya_points }}</div>
+                    <div class="label">رصيد الاعتيادية</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ leave_balance.tar7eel_points }}</div>
+                    <div class="label">الرصيد المرحل</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">إحصائيات الحضور خلال الفترة المحددة</h5>
+        </div>
+        <div class="card-body">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.check_in_delays }}</div>
+                    <div class="label">تأخيرات الحضور</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.absences }}</div>
+                    <div class="label">أيام الغياب</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.leaves }}</div>
+                    <div class="label">الإجازات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.ezns }}</div>
+                    <div class="label">الأذونات</div>
+                </div>
+            </div>
+            <div class="stats-container mt-3">
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.clinics }}</div>
+                    <div class="label">زيارات العيادة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.momryas }}</div>
+                    <div class="label">المأموريات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ attendance_stats.altmas }}</div>
+                    <div class="label">الالتماسات</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Display Report Data -->
+    {% if report_type != 'overview' and report_data %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-file-alt me-2"></i>
+                {% if report_type == 'overview' %}
+                    نظرة عامة
+                {% elif report_type == 'check_in_delays' %}
+                    تقرير التأخيرات
+                {% elif report_type == 'momrya' %}
+                    تقرير المأموريات
+                {% elif report_type == 'ezn' %}
+                    تقرير الأذونات
+                {% elif report_type == 'agaza' %}
+                    تقرير الإجازات
+                {% elif report_type == 'clinic' %}
+                    تقرير العيادة
+                {% elif report_type == 'altmas' %}
+                    تقرير الالتماسات
+                {% elif report_type == 'absent' %}
+                    تقرير الغياب
+                {% endif %}
+            </h5>
+            
+            <!-- Add PDF Export Button -->
+            <a href="{{ url_for('main.employee_history_pdf', employee_id=employee.id, report_type=report_type, date_from=date_from_str, date_to=date_to_str) }}" class="btn btn-danger" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            {% if report_data|length > 0 %}
+                                {% for key, value in report_data[0].items() %}
+                                    {% if key != 'Employee Name' and key != 'Office' %}
+                                        <th>{% if key in translations %}{{ translations[key] }}{% else %}{{ key }}{% endif %}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in report_data %}
+                            <tr>
+                                {% for key, value in row.items() %}
+                                    {% if key != 'Employee Name' and key != 'Office' %}
+                                        <td>{{ value }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -32,6 +32,10 @@
 {% endif %}
     {% if form.from_time and form.to_time %}
     <div class="form-group">
+        {{ form.date.label(class="form-label") }}
+        {{ form.date(class="form-control") }}
+    </div>
+    <div class="form-group">
         {{ form.from_time.label(class="form-label") }}
         {{ form.from_time(class="form-control") }}
     </div>

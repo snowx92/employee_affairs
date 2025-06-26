@@ -181,10 +181,200 @@
     right: 0.75rem; /* Adjust icon position on focus */
 }
 .table-responsive {
-    display: block;
+    margin-left: 0;
+    margin-right: 0;
     width: 100%;
-    overflow-x:unset; 
-    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+}
+
+.filters {
+    margin-bottom: 1rem;
+}
+
+.filters select,
+.filters button {
+    margin-right: 0.5rem;
+}
+
+#searchBar {
+    padding: 8px;
+    margin-bottom: 15px;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.contract-warning {
+    background-color: #fff8e6 !important; /* Light yellow background */
+}
+
+.contract-alert {
+    display: none;
+    background-color: #ff9800;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.contract-alert:hover {
+    background-color: #e68a00;
+}
+
+.action-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Add additional responsive table styles */
+.responsive-table {
+    width: 100%;
+    margin-bottom: 1rem;
+    table-layout: auto; /* Changed from fixed to auto */
+    font-size: 0.8rem; /* Further reduce font size */
+}
+
+/* Make table cells adapt to content */
+.responsive-table td, 
+.responsive-table th {
+    white-space: normal; /* Keep normal to allow text wrapping */
+    padding: 0.45rem; /* Slightly reduce padding */
+    vertical-align: middle;
+    overflow: visible; /* Changed from hidden to visible */
+    text-overflow: clip;
+    max-width: none; /* Remove max-width constraint */
+}
+
+/* Remove specific column width constraints by setting them all to auto */
+.responsive-table th:nth-child(1),
+.responsive-table td:nth-child(1),
+.responsive-table th:nth-child(2),
+.responsive-table td:nth-child(2),
+.responsive-table th:nth-child(3),
+.responsive-table td:nth-child(3),
+.responsive-table th:nth-child(4),
+.responsive-table td:nth-child(4),
+.responsive-table th:nth-child(5),
+.responsive-table td:nth-child(5),
+.responsive-table th:nth-child(6),
+.responsive-table td:nth-child(6),
+.responsive-table th:nth-child(7),
+.responsive-table td:nth-child(7),
+.responsive-table th:nth-child(8),
+.responsive-table td:nth-child(8),
+.responsive-table th:nth-child(9),
+.responsive-table td:nth-child(9),
+.responsive-table th:nth-child(10),
+.responsive-table td:nth-child(10),
+.responsive-table th:nth-child(11),
+.responsive-table td:nth-child(11),
+.responsive-table th:nth-child(12),
+.responsive-table td:nth-child(12) {
+    width: auto;
+}
+
+/* Ensure images don't break the layout */
+.responsive-table .img-thumbnail {
+    max-width: 40px; /* Reduced from 50px */
+    height: auto;
+}
+
+/* Ensure action buttons are visible */
+.responsive-table .action-column {
+    width: auto;
+    min-width: 120px; /* Ensure minimum width for action buttons */
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+/* Make buttons in action column more compact but still visible */
+.responsive-table .btn-sm {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    margin-bottom: 3px;
+}
+
+/* Customize column widths */
+.responsive-table th:nth-child(1), /* ID column */
+.responsive-table td:nth-child(1) {
+    width: auto;
+}
+
+.responsive-table th:nth-child(2), /* Name column */
+.responsive-table td:nth-child(2) {
+    width: auto;
+}
+
+.responsive-table th:nth-child(3), /* Office column */
+.responsive-table td:nth-child(3),
+.responsive-table th:nth-child(4), /* Job column */
+.responsive-table td:nth-child(4),
+.responsive-table th:nth-child(5), /* Period column */
+.responsive-table td:nth-child(5) {
+    width: auto;
+}
+
+.responsive-table th:nth-child(6), /* Time columns */
+.responsive-table td:nth-child(6),
+.responsive-table th:nth-child(7),
+.responsive-table td:nth-child(7) {
+    width: auto;
+}
+
+.responsive-table th:nth-child(8), /* Contract column */
+.responsive-table td:nth-child(8),
+.responsive-table th:nth-child(9), /* Status column */
+.responsive-table td:nth-child(9),
+.responsive-table th:nth-child(10), /* Phone column */
+.responsive-table td:nth-child(10) {
+    width: auto;
+}
+
+.responsive-table th:nth-child(11), /* Photo column */
+.responsive-table td:nth-child(11) {
+    width: auto;
+}
+
+.responsive-table th:nth-child(12), /* Actions column */
+.responsive-table td:nth-child(12) {
+    width: auto;
+}
+
+/* Override for column headers */
+.column-header select {
+    min-width: 80px;
+    font-size: 0.75rem;
+}
+
+.column-header div {
+    font-size: 0.85rem;
+}
+
+/* Responsive styles for smaller screens */
+@media (max-width: 992px) {
+    .thead-dark th {
+        min-width: 80px;
+    }
+    .container.py-5 {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .thead-dark th {
+        min-width: 70px;
+    }
+}
+
+/* Make the parent container take less width */
+.container.py-5 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
 }
 </style>
 
@@ -222,7 +412,7 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-hover table-striped animated-table">
+        <table class="table table-bordered table-hover table-striped animated-table responsive-table">
             <thead class="thead-dark">
                 <tr>
                     <th>الرقم التعريفي</th>
@@ -276,7 +466,7 @@
             </thead>
             <tbody id="employeeTable">
                 {% for employee in employees %}
-                <tr>
+                <tr id="employee-row-{{ employee.id }}" data-emp-type="{{ employee.emp_type }}" data-contract-end="{{ employee.contract_end_date }}">
                     <td>{{ employee.id }}</td>
                     <td>{{ employee.name }}</td>
                     <td>{{ employee.office_name }}</td>
@@ -294,11 +484,17 @@
                         <img src="{{ url_for('static', filename='emp_imgs/profile.png') }}" alt="Photo" class="img-thumbnail">
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="action-column">
                         <a href="{{ url_for('main.add_employee', employee_id=employee.id) }}" class="btn btn-primary btn-sm">تعديل</a>
                         <form action="{{ url_for('main.delete_employee', employee_id=employee.id) }}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-danger btn-sm mx-1" onclick="return confirm('هل انت متاكد انك تريد حذف هذا الموظف?');">حذف</button>
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل انت متاكد انك تريد حذف هذا الموظف?');">حذف</button>
                         </form>
+                        <a href="{{ url_for('main.employee_history', employee_id=employee.id) }}" class="btn btn-info btn-sm">سجل الموظف</a>
+                        <div id="contract-alert-{{ employee.id }}" class="contract-alert" style="display: none; margin-top: 5px;">
+                            <span class="badge bg-warning text-dark">
+                                <i class="fa fa-exclamation-triangle"></i> يجب تحديث تاريخ انتهاء العقد
+                            </span>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -438,28 +634,168 @@
     }
     
     // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        const saveButton = document.getElementById('saveButton');
-        const searchBar = document.getElementById('searchBar');
-        const table = document.querySelector('table');
-        const tbody = table.querySelector('tbody');
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-    
-
+    document.addEventListener('DOMContentLoaded', function() {
         // Search functionality
-        searchBar.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            rows.forEach(row => {
-                const idCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const nameCell = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                if (idCell.includes(searchTerm) || nameCell.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+        const searchBar = document.getElementById('searchBar');
+        if (searchBar) {
+            searchBar.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('.table tbody tr');
+                
+                rows.forEach(row => {
+                    // Get specifically the employee ID and name from columns 0 and 1
+                    const empId = row.cells[0]?.textContent.trim().toLowerCase() || '';
+                    const empName = row.cells[1]?.textContent.trim().toLowerCase() || '';
+                    
+                    // Check if either the ID or name contains the search term
+                    if (empId.includes(searchTerm) || empName.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             });
-        });
-        populateFilters();
+        }
+        
+        // Check contract dates
+        checkContractDates();
     });
+    
+    function checkContractDates() {
+        const rows = document.querySelectorAll('.table tbody tr');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to 00:00:00
+        
+        let expiredContractsCount = 0;
+        
+        rows.forEach(row => {
+            // Check for data attributes first (they're more reliable)
+            const empType = row.getAttribute('data-emp-type');
+            const contractEndDate = row.getAttribute('data-contract-end');
+            const employeeId = row.id.replace('employee-row-', '');
+            const name = row.querySelector('td:nth-child(2)')?.textContent.trim() || 'Unknown';
+            
+            // Get the actions cell for this row
+            const actionsCell = row.querySelector('td:last-child');
+            
+            if (!actionsCell) return; // Skip if no actions cell
+            
+            // Find or create contract alert div
+            let alertDiv = actionsCell.querySelector('.contract-alert');
+            if (!alertDiv) {
+                alertDiv = document.createElement('div');
+                alertDiv.className = 'contract-alert';
+                // Insert at the beginning of the actions cell
+                actionsCell.insertBefore(alertDiv, actionsCell.firstChild);
+            }
+            
+            console.log(`Employee ${name} (ID: ${employeeId}): Type=${empType}, Contract End Date=${contractEndDate}`);
+            
+            // Only process if this is a contract employee
+            if (empType === 'عقد') {
+                // Check if contract end date exists
+                if (!contractEndDate || contractEndDate === 'None' || contractEndDate === 'null' || contractEndDate === '') {
+                    console.log(`  - No contract end date for ${name}`);
+                    alertDiv.textContent = 'عقد بدون تاريخ انتهاء!';
+                    alertDiv.style.display = 'block';
+                    row.classList.add('contract-warning');
+                    expiredContractsCount++;
+                } else {
+                    try {
+                        console.log(`  - Parsing date: "${contractEndDate}" for ${name}`);
+                        
+                        // Try to parse the date
+                        let endDate = null;
+                        
+                        // Check if it's a valid ISO date string (YYYY-MM-DD)
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(contractEndDate)) {
+                            endDate = new Date(contractEndDate);
+                        } 
+                        // Check for DD/MM/YYYY format
+                        else if (/^\d{2}\/\d{2}\/\d{4}$/.test(contractEndDate)) {
+                            const parts = contractEndDate.split('/');
+                            endDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        }
+                        // Try direct parsing as a last resort
+                        else {
+                            endDate = new Date(contractEndDate);
+                        }
+                        
+                        // Check if we got a valid date
+                        if (endDate && !isNaN(endDate.getTime())) {
+                            console.log(`  - Valid date parsed: ${endDate.toISOString().split('T')[0]} for ${name}`);
+                            
+                            // Set to end of day for accurate comparison
+                            endDate.setHours(23, 59, 59, 999);
+                            
+                            const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                            console.log(`  - Days remaining: ${daysRemaining} for ${name}`);
+                            
+                            if (today > endDate) {
+                                // Contract has expired
+                                alertDiv.textContent = 'انتهى العقد!';
+                                alertDiv.style.display = 'block';
+                                row.classList.add('contract-warning');
+                                expiredContractsCount++;
+                                console.log(`  - Contract expired for ${name}`);
+                            } else if (daysRemaining <= 30) {
+                                // Contract expires within 30 days
+                                alertDiv.textContent = `ينتهي في ${daysRemaining} يوم`;
+                                alertDiv.style.display = 'block';
+                                row.classList.add('contract-warning');
+                                expiredContractsCount++;
+                                console.log(`  - Contract expires soon for ${name}`);
+                            } else {
+                                // Contract is valid and not expiring soon
+                                alertDiv.style.display = 'none';
+                                row.classList.remove('contract-warning');
+                                console.log(`  - Contract is valid for ${name}`);
+                            }
+                        } else {
+                            console.log(`  - Invalid date format: ${contractEndDate} for ${name}`);
+                            alertDiv.textContent = 'تنسيق تاريخ غير صالح!';
+                            alertDiv.style.display = 'block';
+                            row.classList.add('contract-warning');
+                            expiredContractsCount++;
+                        }
+                    } catch (e) {
+                        console.error(`Error processing date for ${name}:`, e);
+                        alertDiv.textContent = 'خطأ في معالجة التاريخ';
+                        alertDiv.style.display = 'block';
+                        row.classList.add('contract-warning');
+                        expiredContractsCount++;
+                    }
+                }
+            } else {
+                // Not a contract employee, hide any existing alert
+                alertDiv.style.display = 'none';
+                row.classList.remove('contract-warning');
+            }
+        });
+        
+        // Show notification if any expired contracts
+        if (expiredContractsCount > 0) {
+            // Check if notification already exists
+            let existingNotification = document.querySelector('.alert-warning.alert-dismissible');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-warning alert-dismissible fade show mt-3';
+            notification.innerHTML = `
+                <strong>تنبيه!</strong> يوجد ${expiredContractsCount} موظف لديهم عقود منتهية أو على وشك الانتهاء.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            const table = document.querySelector('.table');
+            if (table && table.parentNode) {
+                table.parentNode.insertBefore(notification, table);
+            }
+        }
+        
+        // Call populateFilters after processing contract alerts
+        populateFilters();
+    }
 </script>
 {% endblock %}

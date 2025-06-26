@@ -238,10 +238,12 @@
     justify-content: space-around !important;
     flex-direction: row !important;
 ">
-<h2></h2>
         <div class="searchInputWrapper">
             <input style="text-align: center;" type="text" id="searchBar" class="searchInput" placeholder="ابحث بالاسم أو الرقم التعريفي">
             <i class="searchInputIcon fa fa-search"></i>
+        </div>
+        <div class="date-picker-wrapper">
+            <input type="date" id="datePicker" class="form-control" style="border-radius: 2rem; padding: 0.5rem 1rem;">
         </div>
     </div>
 
@@ -305,53 +307,154 @@
                 {% endfor %}
             </tbody>
         </table>
-        <div class="container" style="width: fit-content;">
-            <div id="pagination" class="paginate">
-                <button class="prevBtn">
-                    <span class="prevBtn-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" width="24px" height="24px">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                        </svg>
-                    </span>
-                    <span class="prevBtn-text">Prev</span>
-                </button>
-                <div class="containerBtns">
-                    <div class="leftContainer"></div>
-                    <button class="activeBtn"></button>
-                    <div class="rightContainer"></div>
-                </div>
-                <button class="nextBtn">
-                    <span class="nextBtn-text">Next</span>
-                    <span class="nextBtn-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" width="24px" height="24px">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                        </svg>
-                    </span>
-                </button>
-            </div>
-
-
-        </div>
     </div>
 </div>
 <script>
+    // Global variables for search
+    let allRows = []; // Store all rows for filtering
+
+    // Search functionality
+    function updateSearch() {
+        const searchTerm = document.getElementById('searchBar').value.toLowerCase();
+        const tbody = document.querySelector('#employeeTable');
+        if (!tbody) return;
+
+        // Get all rows
+        allRows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Filter rows based on search term
+        allRows.forEach(row => {
+            const id = row.cells[0].textContent.toLowerCase();
+            const name = row.cells[1].textContent.toLowerCase();
+            const matches = id.includes(searchTerm) || name.includes(searchTerm);
+            row.style.display = matches ? '' : 'none';
+        });
+    }
 
     $(document).ready(function() {
+        console.log('Document ready');
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        $('#datePicker').val(today);
+
+        // Handle date change
+        $('#datePicker').on('change', function() {
+            console.log('Date changed:', $(this).val());
+            const selectedDate = $(this).val();
+            updateAttendanceTable(selectedDate);
+        });
+
+        // Add search input event listener
+        const searchBar = document.getElementById('searchBar');
+        if (searchBar) {
+            searchBar.addEventListener('input', function() {
+                console.log('Search input changed:', this.value);
+                updateSearch();
+            });
+        }
+
         // Use event delegation for edit buttons inside time-cell within tbody
-        $('tbody').on('click', '.edit-btn', function() {
+        attachEditButtonListeners();
+
+        // Handle delete form submission
+        $(document).on('submit', 'form[action*="delete_attendence"]', async function(e) {
+            e.preventDefault();
+            const form = this;
+            const selectedDate = $('#datePicker').val();
+            
+            if (confirm('هل انت متاكد انك تريد حذف هذا التسجيل?')) {
+                try {
+                    const response = await fetch(`${form.action}?date=${selectedDate}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    
+                    updateAttendanceTable(selectedDate);
+                } catch (error) {
+                    console.error('Error deleting attendance record:', error);
+                    alert('حدث خطأ أثناء حذف التسجيل. يرجى المحاولة مرة أخرى.');
+                }
+            }
+        });
+    });
+
+    async function updateAttendanceTable(date) {
+        try {
+            console.log('Fetching data for date:', date);
+            const response = await fetch(`/attendnce_sign?date=${date}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Unknown error occurred');
+            }
+            
+            const html = await response.text();
+            console.log('Received HTML:', html);
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const tableContent = doc.querySelector('#employeeTable');
+            if (!tableContent) {
+                console.error('Table content not found in response. Full response:', html);
+                return;
+            }
+            
+            const currentTable = document.querySelector('#employeeTable');
+            if (currentTable) {
+                currentTable.innerHTML = tableContent.innerHTML;
+                // Reattach event listeners
+                attachEditButtonListeners();
+                // Update search if there's a search term
+                const searchBar = document.getElementById('searchBar');
+                if (searchBar && searchBar.value) {
+                    updateSearch();
+                }
+            } else {
+                console.error('Current table not found in DOM');
+            }
+        } catch (error) {
+            console.error('Error fetching attendance data:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            alert('حدث خطأ أثناء تحديث البيانات. يرجى المحاولة مرة أخرى.\n' + error.message);
+        }
+    }
+
+    function attachEditButtonListeners() {
+        $('tbody').off('click', '.edit-btn').on('click', '.edit-btn', function() {
             var type = $(this).data('type');
             var employeeId = $(this).data('employee-id');
             var cell = $(this).closest('.time-cell');
             var display = cell.find('.time-display');
             var currentTime = display.text().trim();
-            var editBtn = $(this);  // Store reference to the edit button
+            var editBtn = $(this);
+            var selectedDate = $('#datePicker').val();
     
             // Create form elements
             var form = $('<form>')
                 .attr('method', 'POST')
-                .attr('action', '/update_time')
+                .attr('action', `/update_time?date=${selectedDate}`)
                 .addClass('edit-form');
     
             var hoursSelect = $('<select>')
@@ -378,7 +481,7 @@
                 .on('click', function() {
                     form.remove();
                     display.show();
-                    editBtn.show();  // Show the edit button when canceling
+                    editBtn.show();
                 });
     
             form.append(hoursSelect, ':', minutesSelect, submitBtn, cancelBtn);
@@ -386,162 +489,68 @@
             form.append($('<input>').attr('type', 'hidden').attr('name', 'employee_id').val(employeeId));
     
             display.hide();
-            editBtn.hide();  // Hide the edit button when the form is displayed
+            editBtn.hide();
             cell.append(form);
     
-            // Set initial values if the time is already set
             if (currentTime !== 'لم تسجل بعد') {
                 var [hours, minutes] = currentTime.split(':');
                 hoursSelect.val(parseInt(hours));
                 minutesSelect.val(parseInt(minutes));
             }
+
+            form.on('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(() => {
+                    updateAttendanceTable(selectedDate);
+                })
+                .catch(error => {
+                    console.error('Error updating time:', error);
+                    alert('حدث خطأ أثناء تحديث الوقت. يرجى المحاولة مرة أخرى.');
+                });
+            });
         });
-    });
-let sortState = {};  // Keeps track of the sorting state for each column
-
-function sortTable(columnIndex) {
-    const table = document.querySelector('table');
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.rows);
-    let ascending = sortState[columnIndex] === 'asc' ? false : true;  // Toggle the sort state
-
-    rows.sort((a, b) => {
-        const aText = a.cells[columnIndex].innerText.trim();
-        const bText = b.cells[columnIndex].innerText.trim();
-        return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
-    });
-
-    // Update the arrow and sort state
-    updateArrows(columnIndex, ascending);
-    sortState[columnIndex] = ascending ? 'asc' : 'desc';
-
-    // Reattach the sorted rows to the table
-    rows.forEach(row => tbody.appendChild(row));
-}
-
-function updateArrows(columnIndex, ascending) {
-    const allArrows = document.querySelectorAll('thead th span');  // Get all arrow spans
-    allArrows.forEach(arrow => arrow.innerText = '↕');  // Reset all arrows to default
-
-    const arrow = document.getElementById('arrow' + columnIndex);
-    arrow.innerText = ascending ? '↑' : '↓';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Get references to DOM elements
-    const searchBar = document.getElementById('searchBar');
-    const table = document.querySelector('table');
-    const tbody = table.querySelector('tbody');
-    const prevBtn = document.querySelector('.prevBtn');
-    const nextBtn = document.querySelector('.nextBtn');
-    const leftContainer = document.querySelector('.leftContainer');
-    const rightContainer = document.querySelector('.rightContainer');
-    const activeBtn = document.querySelector('.activeBtn');
-
-    if (!tbody) {
-        console.error('Error: tbody element not found');
-        return;
     }
 
-    let rows = Array.from(tbody.querySelectorAll('tr')); // Initialize rows
-    const pageSize = 5;
-    let totalPages;
-    let currentPage = parseInt(localStorage.getItem('currentPage')) || 1; // Get the saved page number or default to 1
+    let sortState = {};  // Keeps track of the sorting state for each column
 
-    function paginateTable() {
-        // Filter rows based on the search input
-        let filteredRows = rows.filter(row => {
-            const idCell = row.querySelector('td:first-child').textContent.toLowerCase();
-            const nameCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            return idCell.includes(searchBar.value.toLowerCase()) || nameCell.includes(searchBar.value.toLowerCase());
+    function sortTable(columnIndex) {
+        const table = document.querySelector('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.rows);
+        let ascending = sortState[columnIndex] === 'asc' ? false : true;  // Toggle the sort state
+
+        rows.sort((a, b) => {
+            const aText = a.cells[columnIndex].innerText.trim();
+            const bText = b.cells[columnIndex].innerText.trim();
+            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
         });
 
-        totalPages = Math.ceil(filteredRows.length / pageSize);
-        currentPage = Math.min(currentPage, totalPages); // Ensure currentPage does not exceed totalPages
-        displayRows(currentPage, filteredRows);
-        updatePaginationControls(currentPage); // Update pagination controls
-        updateButtons(currentPage); // Update buttons display
-        localStorage.setItem('currentPage', currentPage); // Save the current page number
+        // Update the arrow and sort state
+        updateArrows(columnIndex, ascending);
+        sortState[columnIndex] = ascending ? 'asc' : 'desc';
+
+        // Reattach the sorted rows to the table
+        rows.forEach(row => tbody.appendChild(row));
     }
 
-    function displayRows(page, filteredRows) {
-        const start = (page - 1) * pageSize;
-        const end = start + pageSize;
-        const paginatedRows = filteredRows.slice(start, end);
+    function updateArrows(columnIndex, ascending) {
+        const allArrows = document.querySelectorAll('thead th span');  // Get all arrow spans
+        allArrows.forEach(arrow => arrow.innerText = '↕');  // Reset all arrows to default
 
-        tbody.innerHTML = ''; // Clear the table body
-        paginatedRows.forEach(row => tbody.appendChild(row)); // Append paginated rows
+        const arrow = document.getElementById('arrow' + columnIndex);
+        arrow.innerText = ascending ? '↑' : '↓';
     }
-
-    function updateButtons(page) {
-        prevBtn.disabled = page === 1;
-        nextBtn.disabled = page === totalPages;
-        activeBtn.textContent = page;
-    }
-
-    function updatePaginationControls(page) {
-        if (page <= 5) {
-            updateContainer(leftContainer, Array.from({ length: page - 1 }, (_, i) => i + 1), []);
-        } else {
-            updateContainer(leftContainer, [1, 2, page - 2, page - 1], [1]);
-        }
-
-        if (page >= totalPages - 4) {
-            const tail = totalPages - page;
-            updateContainer(rightContainer, Array.from({ length: tail }, (_, i) => i + page + 1), []);
-        } else {
-            updateContainer(rightContainer, [page + 1, page + 2, totalPages - 1, totalPages], [1]);
-        }
-    }
-
-    function createButton(text, classNames = [], disabled = false) {
-        const button = document.createElement('button');
-        button.textContent = text;
-        button.classList.add(...classNames);
-        button.disabled = disabled;
-        return button;
-    }
-
-    function updateContainer(container, array, disabledIndexes = []) {
-        if (!container) return; // Check if container exists
-        container.innerHTML = '';  // Clear the container first
-        for (let i = 0; i < array.length; i++) {
-            const text = disabledIndexes.includes(i) ? '...' : array[i];
-            const button = createButton(text, ['w-7', 'h-7', 'mx-2', 'numberBtn'], disabledIndexes.includes(i));
-            button.addEventListener('click', handleBtnNumbers);
-            container.appendChild(button);
-        }
-    }
-
-    function handleBtnNumbers(e) {
-        const target = e.target.closest('.numberBtn')?.textContent;
-        if (target) {
-            currentPage = Number(target);
-            paginateTable(); // Reapply pagination after page change
-        }
-    }
-
-    // Event Listeners
-    searchBar.addEventListener('input', () => {
-        currentPage = 1;  // Reset to the first page when filtering
-        paginateTable();
-    });
-
-    prevBtn.addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
-            paginateTable(); // Reapply pagination after page change
-        }
-    });
-
-    nextBtn.addEventListener('click', () => {
-        if (currentPage < totalPages) {
-            currentPage++;
-            paginateTable(); // Reapply pagination after page change
-        }
-    });
-
-    paginateTable(); // Initial pagination setup
-});
 </script>
 {% endblock %}
